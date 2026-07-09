@@ -59,9 +59,9 @@ class Product(Base):
     barcode = Column(String, unique=True, index=True, nullable=True)
     name = Column(String, index=True, nullable=False)
 
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
-    brand_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
-    unit_id = Column(Integer, ForeignKey("units.id"), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.unit_id"), nullable=True)
+    brand_id = Column(Integer, ForeignKey("brands.unit_id"), nullable=True)
+    unit_id = Column(Integer, ForeignKey("units.unit_id"), nullable=False)
 
     tax_rate = Column(Numeric(5, 2), default=0.00)  # Percentage, e.g., 15.00
     min_stock_alert = Column(Integer, default=10)
@@ -71,7 +71,7 @@ class ProductBatch(Base):
     """The physical delivery (e.g., 'Nestle Milk 1L arriving today, expiring next week')"""
     __tablename__ = "product_batches"
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.unit_id"), nullable=False)
     batch_number = Column(String, nullable=False, index=True)
 
     cost_price = Column(Numeric(10, 2), nullable=False)
@@ -88,9 +88,9 @@ class StockTransaction(Base):
     """Records EVERY movement: Sales, Purchases, Adjustments, Transfers"""
     __tablename__ = "stock_transactions"
     id = Column(Integer, primary_key=True, index=True)
-    warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=False)
-    batch_id = Column(Integer, ForeignKey("product_batches.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    warehouse_id = Column(Integer, ForeignKey("warehouses.unit_id"), nullable=False)
+    batch_id = Column(Integer, ForeignKey("product_batches.unit_id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.unit_id"), nullable=False)
 
     quantity = Column(Integer, nullable=False)  # Positive for stock in, Negative for stock out
     transaction_type = Column(String,
@@ -114,7 +114,7 @@ class Supplier(Base):
 class PurchaseInvoice(Base):
     __tablename__ = "purchase_invoices"
     id = Column(Integer, primary_key=True, index=True)
-    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.unit_id"), nullable=False)
     invoice_number = Column(String, unique=True, nullable=False)
     total_amount = Column(Numeric(12, 2), nullable=False)
     status = Column(String, default="pending")  # pending, paid, returned
@@ -127,7 +127,7 @@ class PurchaseInvoice(Base):
 class SalesInvoice(Base):
     __tablename__ = "sales_invoices"
     id = Column(Integer, primary_key=True, index=True)
-    cashier_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    cashier_id = Column(Integer, ForeignKey("users.unit_id"), nullable=False)
 
     receipt_number = Column(String, unique=True, index=True, nullable=False)
     subtotal = Column(Numeric(12, 2), nullable=False)
@@ -143,8 +143,8 @@ class SalesInvoice(Base):
 class SalesItem(Base):
     __tablename__ = "sales_items"
     id = Column(Integer, primary_key=True, index=True)
-    invoice_id = Column(Integer, ForeignKey("sales_invoices.id"), nullable=False)
-    batch_id = Column(Integer, ForeignKey("product_batches.id"), nullable=False)
+    invoice_id = Column(Integer, ForeignKey("sales_invoices.unit_id"), nullable=False)
+    batch_id = Column(Integer, ForeignKey("product_batches.unit_id"), nullable=False)
 
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Numeric(10, 2), nullable=False)  # Captured at sale time
