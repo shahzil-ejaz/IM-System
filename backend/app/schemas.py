@@ -192,3 +192,21 @@ class SalesInvoiceResponse(BaseModel):
     items: List[SalesItemResponse] = []
     
     model_config = ConfigDict(from_attributes=True)
+
+# The individual items arriving on the truck
+class IncomingStockItem(BaseModel):
+    product_id: int
+    warehouse_id: int
+    batch_number: str
+    cost_price: Decimal = Field(..., max_digits=10, decimal_places=2)
+    retail_price: Decimal = Field(..., max_digits=10, decimal_places=2)
+    expiry_date: date
+    quantity_received: int
+
+# The giant payload the frontend sends to the backend
+class ReceiveStockPayload(BaseModel):
+    supplier_id: int
+    invoice_number: str
+    total_amount: Decimal = Field(..., max_digits=12, decimal_places=2)
+    received_by_user_id: int
+    items: List[IncomingStockItem]
