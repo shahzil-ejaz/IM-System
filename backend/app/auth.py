@@ -14,7 +14,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     raise ValueError("CRITICAL: SECRET_KEY environment variable is not set. Check your .env file.")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES","60"))
 
 # Password Hashing setup
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -66,9 +66,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-# ==========================================
-# DEPENDENCY: Role-Based Access Control (RBAC)
-# ==========================================
+
 def require_role(allowed_roles: list[str]):
     def role_checker(current_user: models.User = Depends(get_current_user)):
         if current_user.role not in allowed_roles:
