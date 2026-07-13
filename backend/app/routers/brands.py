@@ -4,6 +4,7 @@ from typing import List
 
 from app import models, schemas
 from app.database import get_db
+from app.auth import require_role
 
 router = APIRouter(
     prefix="/api/brands",
@@ -12,7 +13,11 @@ router = APIRouter(
 
 
 @router.post("/", response_model=schemas.BrandResponse, status_code=status.HTTP_201_CREATED)
-def create_brand(brand: schemas.BrandCreate, db: Session = Depends(get_db)):
+def create_brand(
+    brand: schemas.BrandCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     existing_brand = db.query(models.Brand).filter(models.Brand.name == brand.name).first()
     if existing_brand:
         raise HTTPException(status_code=400, detail="Brand already exists")
@@ -25,13 +30,22 @@ def create_brand(brand: schemas.BrandCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=List[schemas.BrandResponse])
-def get_brands(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_brands(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     brands = db.query(models.Brand).offset(skip).limit(limit).all()
     return brands
 
 
 @router.get("/{brand_id}", response_model=schemas.BrandResponse)
-def get_brand(brand_id: int, db: Session = Depends(get_db)):
+def get_brand(
+    brand_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     brand = db.query(models.Brand).filter(models.Brand.id == brand_id).first()
     if not brand:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
@@ -39,7 +53,12 @@ def get_brand(brand_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{brand_id}", response_model=schemas.BrandResponse)
-def update_brand(brand_id: int, brand_update: schemas.BrandCreate, db: Session = Depends(get_db)):
+def update_brand(
+    brand_id: int,
+    brand_update: schemas.BrandCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     brand_query = db.query(models.Brand).filter(models.Brand.id == brand_id)
     existing_brand = brand_query.first()
 
@@ -60,7 +79,11 @@ def update_brand(brand_id: int, brand_update: schemas.BrandCreate, db: Session =
 
 
 @router.delete("/{brand_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_brand(brand_id: int, db: Session = Depends(get_db)):
+def delete_brand(
+    brand_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin"])),
+):
     brand_query = db.query(models.Brand).filter(models.Brand.id == brand_id)
     if not brand_query.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")

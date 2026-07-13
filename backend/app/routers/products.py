@@ -4,6 +4,7 @@ from typing import List
 
 from app import models, schemas
 from app.database import get_db
+from app.auth import require_role
 
 # Initialize the router
 router = APIRouter(
@@ -27,7 +28,11 @@ def validate_product_fks(product_data: schemas.ProductCreate, db: Session):
 
 
 @router.post("/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)
-def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
+def create_product(
+    product: schemas.ProductCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
 
     validate_product_fks(product, db)
     #Check for duplicate SKU/Barcode
@@ -48,14 +53,23 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
 
 
 @router.get("/", response_model=List[schemas.ProductResponse])
-def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_products(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     # Standard server-side pagination to prevent memory crashes
     products = db.query(models.Product).offset(skip).limit(limit).all()
     return products
 
 
 @router.get("/{product_id}", response_model=schemas.ProductResponse)
-def get_product(product_id: int, db: Session = Depends(get_db)):
+def get_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
 
     if not product:
@@ -66,7 +80,12 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{product_id}", response_model=schemas.ProductResponse)
-def update_product(product_id: int, product_update: schemas.ProductCreate, db: Session = Depends(get_db)):
+def update_product(
+    product_id: int,
+    product_update: schemas.ProductCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     # 0. Check if the product we want to update actually exists
     product_query = db.query(models.Product).filter(models.Product.id == product_id)
     existing_product = product_query.first()
@@ -100,7 +119,11 @@ def update_product(product_id: int, product_update: schemas.ProductCreate, db: S
     return product_query.first()
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_product(product_id: int, db: Session = Depends(get_db)):
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin"])),
+):
     product_query = db.query(models.Product).filter(models.Product.id == product_id)
 
     if not product_query.first():

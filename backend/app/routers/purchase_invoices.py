@@ -4,6 +4,7 @@ from typing import List
 
 from app import models, schemas
 from app.database import get_db
+from app.auth import require_role
 
 router = APIRouter(
     prefix="/api/purchase-invoices",
@@ -11,7 +12,11 @@ router = APIRouter(
 )
 
 @router.post("/receive-stock", status_code=status.HTTP_201_CREATED)
-def receive_new_stock(payload: schemas.ReceiveStockPayload, db: Session = Depends(get_db)):
+def receive_new_stock(
+    payload: schemas.ReceiveStockPayload,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     try:
         # STEP 1: Verify Supplier Exists
         supplier = db.query(models.Supplier).filter(models.Supplier.id == payload.supplier_id).first()
@@ -88,7 +93,12 @@ def receive_new_stock(payload: schemas.ReceiveStockPayload, db: Session = Depend
 # 2. GET ALL PURCHASE INVOICES
 # ==========================================
 @router.get("/", response_model=List[schemas.PurchaseInvoiceResponse])
-def get_all_purchase_invoices(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_all_purchase_invoices(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     invoices = db.query(models.PurchaseInvoice).offset(skip).limit(limit).all()
     return invoices
 
@@ -97,7 +107,11 @@ def get_all_purchase_invoices(skip: int = 0, limit: int = 100, db: Session = Dep
 # 3. GET A SINGLE PURCHASE INVOICE
 # ==========================================
 @router.get("/{invoice_id}", response_model=schemas.PurchaseInvoiceResponse)
-def get_single_purchase_invoice(invoice_id: int, db: Session = Depends(get_db)):
+def get_single_purchase_invoice(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     invoice = db.query(models.PurchaseInvoice).filter(models.PurchaseInvoice.id == invoice_id).first()
 
     if not invoice:
@@ -110,7 +124,12 @@ def get_single_purchase_invoice(invoice_id: int, db: Session = Depends(get_db)):
 # 4. UPDATE INVOICE STATUS (Safe Update)
 # ==========================================
 @router.patch("/{invoice_id}/status", response_model=schemas.PurchaseInvoiceResponse)
-def update_invoice_status(invoice_id: int, new_status: str, db: Session = Depends(get_db)):
+def update_invoice_status(
+    invoice_id: int,
+    new_status: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     """
     Only allows updating the status (e.g., 'pending' to 'paid').
     Does NOT alter the ledger or batches.

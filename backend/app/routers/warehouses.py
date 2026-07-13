@@ -4,6 +4,7 @@ from typing import List
 
 from app import models, schemas
 from app.database import get_db
+from app.auth import require_role
 
 # Initialize the router
 router = APIRouter(
@@ -12,12 +13,21 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[schemas.WarehouseResponse])
-def get_all_warehouses(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_all_warehouses(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     warehouses = db.query(models.Warehouse).offset(skip).limit(limit).all()
     return warehouses
 
 @router.get("/{warehouse_id}", response_model=schemas.WarehouseResponse)
-def get_single_warehouse(warehouse_id: int, db: Session = Depends(get_db)):
+def get_single_warehouse(
+    warehouse_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     warehouse = db.query(models.Warehouse).filter(models.Warehouse.id == warehouse_id).first()
 
     if not warehouse:
@@ -27,7 +37,11 @@ def get_single_warehouse(warehouse_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=schemas.WarehouseResponse, status_code=status.HTTP_201_CREATED)
-def create_warehouse(warehouse: schemas.WarehouseCreate, db: Session = Depends(get_db)):
+def create_warehouse(
+    warehouse: schemas.WarehouseCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin"])),
+):
     # Check for duplicate warehouse names
     existing_warehouse = db.query(models.Warehouse).filter(models.Warehouse.name == warehouse.name).first()
     if existing_warehouse:
@@ -43,7 +57,12 @@ def create_warehouse(warehouse: schemas.WarehouseCreate, db: Session = Depends(g
 
 
 @router.put("/{warehouse_id}", response_model=schemas.WarehouseResponse)
-def update_warehouse(warehouse_id: int, warehouse_update: schemas.WarehouseCreate, db: Session = Depends(get_db)):
+def update_warehouse(
+    warehouse_id: int,
+    warehouse_update: schemas.WarehouseCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin"])),
+):
     warehouse_query = db.query(models.Warehouse).filter(models.Warehouse.id == warehouse_id)
     existing_warehouse = warehouse_query.first()
 
@@ -66,7 +85,11 @@ def update_warehouse(warehouse_id: int, warehouse_update: schemas.WarehouseCreat
 
 
 @router.delete("/{warehouse_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_warehouse(warehouse_id: int, db: Session = Depends(get_db)):
+def delete_warehouse(
+    warehouse_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin"])),
+):
     warehouse_query = db.query(models.Warehouse).filter(models.Warehouse.id == warehouse_id)
     selected_warehouse = warehouse_query.first()
 

@@ -4,6 +4,7 @@ from typing import List
 
 from app import models, schemas
 from app.database import get_db
+from app.auth import require_role
 
 # Initialize the router
 router = APIRouter(
@@ -16,7 +17,11 @@ router = APIRouter(
 # 1. CREATE A SUPPLIER
 # ==========================================
 @router.post("/", response_model=schemas.SupplierResponse, status_code=status.HTTP_201_CREATED)
-def create_supplier(supplier: schemas.SupplierCreate, db: Session = Depends(get_db)):
+def create_supplier(
+    supplier: schemas.SupplierCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     # Check for duplicate Supplier Name
     name_conflict = db.query(models.Supplier).filter(models.Supplier.name == supplier.name).first()
     if name_conflict:
@@ -35,7 +40,12 @@ def create_supplier(supplier: schemas.SupplierCreate, db: Session = Depends(get_
 # 2. GET ALL SUPPLIERS
 # ==========================================
 @router.get("/", response_model=List[schemas.SupplierResponse])
-def get_all_suppliers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_all_suppliers(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     suppliers = db.query(models.Supplier).offset(skip).limit(limit).all()
     return suppliers
 
@@ -44,7 +54,11 @@ def get_all_suppliers(skip: int = 0, limit: int = 100, db: Session = Depends(get
 # 3. GET A SINGLE SUPPLIER
 # ==========================================
 @router.get("/{supplier_id}", response_model=schemas.SupplierResponse)
-def get_single_supplier(supplier_id: int, db: Session = Depends(get_db)):
+def get_single_supplier(
+    supplier_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     supplier = db.query(models.Supplier).filter(models.Supplier.id == supplier_id).first()
 
     if not supplier:
@@ -57,7 +71,12 @@ def get_single_supplier(supplier_id: int, db: Session = Depends(get_db)):
 # 4. UPDATE A SUPPLIER
 # ==========================================
 @router.put("/{supplier_id}", response_model=schemas.SupplierResponse)
-def update_supplier(supplier_id: int, supplier_update: schemas.SupplierCreate, db: Session = Depends(get_db)):
+def update_supplier(
+    supplier_id: int,
+    supplier_update: schemas.SupplierCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     supplier_query = db.query(models.Supplier).filter(models.Supplier.id == supplier_id)
     existing_supplier = supplier_query.first()
 
@@ -84,7 +103,11 @@ def update_supplier(supplier_id: int, supplier_update: schemas.SupplierCreate, d
 # 5. DELETE A SUPPLIER
 # ==========================================
 @router.delete("/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_supplier(supplier_id: int, db: Session = Depends(get_db)):
+def delete_supplier(
+    supplier_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin"])),
+):
     supplier_query = db.query(models.Supplier).filter(models.Supplier.id == supplier_id)
 
     if not supplier_query.first():

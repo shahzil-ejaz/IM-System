@@ -4,6 +4,7 @@ from typing import List
 
 from app import models, schemas
 from app.database import get_db
+from app.auth import require_role
 
 # Initialize the router
 router = APIRouter(
@@ -13,7 +14,11 @@ router = APIRouter(
 
 
 @router.post("/", response_model=schemas.CategoryResponse, status_code=status.HTTP_201_CREATED)
-def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_db)):
+def create_category(
+    category: schemas.CategoryCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     # Check if category already exists to prevent duplicates
     existing_category = db.query(models.Category).filter(models.Category.name == category.name).first()
     if existing_category:
@@ -31,14 +36,23 @@ def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_
 
 
 @router.get("/", response_model=List[schemas.CategoryResponse])
-def get_categories(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_categories(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     # Fetch all categories with optional pagination
     categories = db.query(models.Category).offset(skip).limit(limit).all()
     return categories
 
 
 @router.get("/{category_id}", response_model=schemas.CategoryResponse)
-def get_category(category_id: int, db: Session = Depends(get_db)):
+def get_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     category = db.query(models.Category).filter(models.Category.id == category_id).first()
 
     if not category:
@@ -48,7 +62,12 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{category_id}", response_model=schemas.CategoryResponse)
-def update_category(category_id: int, category_update: schemas.CategoryCreate, db: Session = Depends(get_db)):
+def update_category(
+    category_id: int,
+    category_update: schemas.CategoryCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     # Find the existing category
     category_query = db.query(models.Category).filter(models.Category.id == category_id)
     existing_category = category_query.first()
@@ -74,7 +93,11 @@ def update_category(category_id: int, category_update: schemas.CategoryCreate, d
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_category(category_id: int, db: Session = Depends(get_db)):
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin"])),
+):
     category_query = db.query(models.Category).filter(models.Category.id == category_id)
     existing_category = category_query.first()
 

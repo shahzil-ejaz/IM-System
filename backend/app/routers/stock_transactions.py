@@ -5,6 +5,7 @@ from typing import List
 
 from app import models, schemas
 from app.database import get_db
+from app.auth import require_role
 
 # Initialize the router
 router = APIRouter(
@@ -16,7 +17,11 @@ router = APIRouter(
 # 1. CREATE A MANUAL TRANSACTION (Adjustment / Transfer)
 # ==========================================
 @router.post("/", response_model=schemas.StockTransactionResponse, status_code=status.HTTP_201_CREATED)
-def create_stock_transaction(transaction: schemas.StockTransactionCreate, db: Session = Depends(get_db)):
+def create_stock_transaction(
+    transaction: schemas.StockTransactionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     """
     Manually create a stock ledger entry.
     Normally used for 'adjustment', 'transfer_in', 'transfer_out', or 'return'.
@@ -50,7 +55,12 @@ def create_stock_transaction(transaction: schemas.StockTransactionCreate, db: Se
 # 2. GET ENTIRE STOCK HISTORY (Ledger)
 # ==========================================
 @router.get("/", response_model=List[schemas.StockTransactionResponse])
-def get_all_transactions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_all_transactions(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     """
     Returns the complete history of all stock movements, sorted by newest first.
     """
@@ -62,7 +72,11 @@ def get_all_transactions(skip: int = 0, limit: int = 100, db: Session = Depends(
 # 3. GET A SPECIFIC TRANSACTION BY ID
 # ==========================================
 @router.get("/{transaction_id}", response_model=schemas.StockTransactionResponse)
-def get_single_transaction(transaction_id: int, db: Session = Depends(get_db)):
+def get_single_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     transaction = db.query(models.StockTransaction).filter(models.StockTransaction.id == transaction_id).first()
 
     if not transaction:
@@ -75,7 +89,11 @@ def get_single_transaction(transaction_id: int, db: Session = Depends(get_db)):
 # 4. GET TRANSACTION HISTORY FOR A SPECIFIC BATCH
 # ==========================================
 @router.get("/batch/{batch_id}", response_model=List[schemas.StockTransactionResponse])
-def get_batch_transactions(batch_id: int, db: Session = Depends(get_db)):
+def get_batch_transactions(
+    batch_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager"])),
+):
     """
     Helpful for auditing exactly what happened to a specific delivery of products.
     """
@@ -89,7 +107,12 @@ def get_batch_transactions(batch_id: int, db: Session = Depends(get_db)):
 # 5. CALCULATE LIVE BALANCE (SPECIFIC BATCH)
 # ==========================================
 @router.get("/balance/batch/{batch_id}/warehouse/{warehouse_id}")
-def get_batch_balance(batch_id: int, warehouse_id: int, db: Session = Depends(get_db)):
+def get_batch_balance(
+    batch_id: int,
+    warehouse_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     """
     Sums up all historical movements to find the exact current stock 
     of a specific batch in a specific warehouse.
@@ -109,7 +132,12 @@ def get_batch_balance(batch_id: int, warehouse_id: int, db: Session = Depends(ge
 # 6. CALCULATE TOTAL BALANCE (MASTER PRODUCT)
 # ==========================================
 @router.get("/balance/product/{product_id}/warehouse/{warehouse_id}")
-def get_total_product_balance(product_id: int, warehouse_id: int, db: Session = Depends(get_db)):
+def get_total_product_balance(
+    product_id: int,
+    warehouse_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     """
     Finds all batches belonging to a product and sums their quantities 
     for a master warehouse inventory count.

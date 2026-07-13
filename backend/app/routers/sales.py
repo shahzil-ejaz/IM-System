@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from app import models, schemas
 from app.database import get_db
+from app.auth import require_role
 
 router = APIRouter(
     prefix="/api/sales",
@@ -14,7 +15,11 @@ router = APIRouter(
 )
 
 @router.post("/checkout", response_model=schemas.SalesInvoiceResponse, status_code=status.HTTP_201_CREATED)
-def process_checkout(payload: schemas.SalesInvoiceCreate, db: Session = Depends(get_db)):
+def process_checkout(
+    payload: schemas.SalesInvoiceCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     # 1. Verify Cashier Exists
     cashier = db.query(models.User).filter(models.User.id == payload.cashier_id).first()
     if not cashier:
@@ -136,14 +141,23 @@ def process_checkout(payload: schemas.SalesInvoiceCreate, db: Session = Depends(
 
 
 @router.get("/", response_model=List[schemas.SalesInvoiceResponse])
-def get_sales(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_sales(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     sales = db.query(models.SalesInvoice).offset(skip).limit(limit).all()
     # FIX: Removed manual item loops. SQLAlchemy relationships handle this automatically.
     return sales
 
 
 @router.get("/{invoice_id}", response_model=schemas.SalesInvoiceResponse)
-def get_sale(invoice_id: int, db: Session = Depends(get_db)):
+def get_sale(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
     sale = db.query(models.SalesInvoice).filter(models.SalesInvoice.id == invoice_id).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Sale Invoice not found")
