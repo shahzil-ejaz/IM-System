@@ -41,7 +41,7 @@ function formatDate(str) {
 
 function formatCurrency(val) {
   if (val == null) return '—';
-  return `$${Number(val).toFixed(2)}`;
+  return `Rs ${Number(val).toFixed(2)}`;
 }
 
 // ─── LEDGER TAB ─────────────────────────────────────────────────────────────

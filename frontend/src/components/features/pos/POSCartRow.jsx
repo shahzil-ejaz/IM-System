@@ -16,7 +16,7 @@ export const POSCartRow = memo(({ item, onIncrement, onDecrement, onRemove }) =>
 
       <div className="flex items-center gap-4">
         <span className="font-mono font-medium text-text-primary">
-          ${parseFloat(item.retail_price || 0).toFixed(2)}
+          Rs {parseFloat(item.retail_price || 0).toFixed(2)}
         </span>
 
         <div className="flex items-center gap-2 bg-canvas border border-border rounded-md p-0.5">
@@ -41,9 +41,9 @@ export const POSCartRow = memo(({ item, onIncrement, onDecrement, onRemove }) =>
           </Button>
         </div>
 
-        <span className="font-mono font-semibold text-text-primary w-16 text-right">
-          ${(parseFloat(item.retail_price || 0) * item.totalQuantity).toFixed(2)}
-        </span>
+        <div className="font-mono font-bold text-base text-text-primary">
+          Rs {(parseFloat(item.retail_price || 0) * item.totalQuantity).toFixed(2)}
+        </div>
 
         <Button 
           variant="ghost" 

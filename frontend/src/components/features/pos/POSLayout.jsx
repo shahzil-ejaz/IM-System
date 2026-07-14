@@ -13,8 +13,9 @@ import { PanelRightClose, PanelRightOpen, Lock, Printer, Archive, MapPin } from 
 export function POSLayout() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash'); // NEW STATE
+  const [amountPaid, setAmountPaid] = useState(''); // NEW STATE
   const { user, logout } = useAuth();
-  const { items, addItem, updateQuantity, removeItem, holdCart, recallCart, heldCart, clearCart, discountAmount } = useCartStore();
+  const { items, addItem, updateQuantity, removeItem, holdCart, recallCart, heldCart, clearCart, total } = useCartStore();
   const { products, batches, isLoadingProducts, isLoadingBatches } = useInventory();
   const checkoutMutation = useCheckout();
 
@@ -80,6 +81,21 @@ export function POSLayout() {
 
   const toggleLayout = () => setIsExpanded(!isExpanded);
 
+  const [manualBarcode, setManualBarcode] = useState('');
+
+  const handleManualSearch = (e) => {
+    e.preventDefault();
+    if (!manualBarcode.trim()) return;
+    
+    const matchedItem = batchInventory.find(p => p.sku === manualBarcode.trim() || p.id.toString() === manualBarcode.trim() || p.batch_number === manualBarcode.trim());
+    if (matchedItem && matchedItem.current_balance > 0) {
+      addItem(matchedItem);
+      setManualBarcode('');
+    } else {
+      alert('Product not found or out of stock!');
+    }
+  };
+
   // Group cart items by product for display (cashier sees one row per product)
   const groupedCartItems = useMemo(() => {
     const grouped = {};
@@ -129,18 +145,26 @@ export function POSLayout() {
   const handleCheckout = async () => {
     if (items.length === 0) return;
 
+    if (paymentMethod === 'cash') {
+      const paid = Number(amountPaid);
+      if (isNaN(paid) || paid < total) {
+        alert(`Insufficient amount paid! Please enter at least Rs ${total.toFixed(2)}`);
+        return;
+      }
+    }
+
     try {
       const payload = {
         cashier_id: user?.id || 1,
         payment_method: paymentMethod,
-        discount_amount: discountAmount,
         items: items.map(i => ({ batch_id: i.batch_id, quantity: i.quantity }))
       };
 
       await checkoutMutation.mutateAsync(payload);
 
       clearCart();
-      alert('Checkout successful!');
+      setAmountPaid('');
+      alert(`Checkout successful!${paymentMethod === 'cash' ? `\nChange due: Rs ${(Number(amountPaid || total) - total).toFixed(2)}` : ''}`);
     } catch (error) {
       console.error("Checkout failed:", error);
       alert('Checkout failed. Check network or stock balances.');
@@ -156,7 +180,18 @@ export function POSLayout() {
             <MapPin className="w-4 h-4 text-text-secondary" />
             <span className="text-sm font-medium text-text-primary">Active: Main Warehouse</span>
           </div>
-          <span className="text-sm text-text-secondary">Cashier: <span className="font-semibold text-text-primary">{user?.username || 'Guest'}</span></span>
+          <span className="text-sm text-text-secondary hidden md:inline">Cashier: <span className="font-semibold text-text-primary">{user?.username || 'Guest'}</span></span>
+          <div className="w-px h-6 bg-border mx-2 hidden md:block" />
+          <form onSubmit={handleManualSearch} className="flex items-center gap-2">
+            <input 
+              type="text" 
+              placeholder="Enter Barcode / SKU" 
+              className="h-8 px-3 rounded-md border border-input bg-background text-sm w-48 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={manualBarcode}
+              onChange={(e) => setManualBarcode(e.target.value)}
+            />
+            <Button type="submit" size="sm" variant="secondary" className="h-8">Search</Button>
+          </form>
         </div>
 
         <div className="flex items-center gap-2">
@@ -217,6 +252,8 @@ export function POSLayout() {
               onProcessCheckout={handleCheckout}
               paymentMethod={paymentMethod}
               setPaymentMethod={setPaymentMethod}
+              amountPaid={amountPaid}
+              setAmountPaid={setAmountPaid}
             />
           )}
         </section>
@@ -228,6 +265,8 @@ export function POSLayout() {
             onProcessCheckout={handleCheckout}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
+            amountPaid={amountPaid}
+            setAmountPaid={setAmountPaid}
           />
         ) : (
           <section className="w-1/2 border-l border-border bg-slate-50/50 flex flex-col shrink-0">

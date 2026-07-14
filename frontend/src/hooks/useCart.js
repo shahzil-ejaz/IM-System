@@ -1,16 +1,15 @@
 import { create } from 'zustand';
 
 // Calculate totals based on cart items
-const calculateTotals = (items, discountAmount = 0, taxRate = 0) => {
+const calculateTotals = (items, taxRate = 0) => {
   const subtotal = items.reduce((sum, item) => sum + (item.retail_price * item.quantity), 0);
   const tax = subtotal * taxRate;
-  const total = subtotal + tax - discountAmount;
+  const total = subtotal + tax;
   return { subtotal, tax, total };
 };
 
 export const useCartStore = create((set, get) => ({
   items: [],
-  discountAmount: 0,
   taxRate: 0.15, // Defaulting to 15% as per requirements example
   heldCart: null,
   subtotal: 0,
@@ -34,7 +33,7 @@ export const useCartStore = create((set, get) => ({
       newItems = [...state.items, { ...productBatch, quantity: 1 }];
     }
 
-    return { items: newItems, ...calculateTotals(newItems, state.discountAmount, state.taxRate) };
+    return { items: newItems, ...calculateTotals(newItems, state.taxRate) };
   }),
 
   updateQuantity: (batchId, delta) => set((state) => {
@@ -49,33 +48,26 @@ export const useCartStore = create((set, get) => ({
       return i;
     });
 
-    return { items: newItems, ...calculateTotals(newItems, state.discountAmount, state.taxRate) };
+    return { items: newItems, ...calculateTotals(newItems, state.taxRate) };
   }),
 
   removeItem: (batchId) => set((state) => {
     const newItems = state.items.filter(i => i.batch_id !== batchId);
-    return { items: newItems, ...calculateTotals(newItems, state.discountAmount, state.taxRate) };
+    return { items: newItems, ...calculateTotals(newItems, state.taxRate) };
   }),
-
-  setDiscount: (amount) => set((state) => ({
-    discountAmount: amount,
-    ...calculateTotals(state.items, amount, state.taxRate)
-  })),
 
   clearCart: () => set((state) => ({
     items: [],
-    discountAmount: 0,
-    ...calculateTotals([], 0, state.taxRate)
+    ...calculateTotals([], state.taxRate)
   })),
 
   // Hold / Recall features
   holdCart: () => set((state) => {
     if (state.items.length === 0) return state;
     return {
-      heldCart: { items: state.items, discountAmount: state.discountAmount },
+      heldCart: { items: state.items },
       items: [],
-      discountAmount: 0,
-      ...calculateTotals([], 0, state.taxRate)
+      ...calculateTotals([], state.taxRate)
     };
   }),
 
@@ -83,9 +75,8 @@ export const useCartStore = create((set, get) => ({
     if (!state.heldCart) return state;
     return {
       items: state.heldCart.items,
-      discountAmount: state.heldCart.discountAmount,
       heldCart: null,
-      ...calculateTotals(state.heldCart.items, state.heldCart.discountAmount, state.taxRate)
+      ...calculateTotals(state.heldCart.items, state.taxRate)
     };
   })
 }));

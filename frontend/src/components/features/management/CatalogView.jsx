@@ -99,8 +99,8 @@ export function CatalogView() {
                           <th className="px-6 py-4 font-medium">Batch #</th>
                           <th className="px-6 py-4 font-medium">Product ID</th>
                           <th className="px-6 py-4 font-medium text-right">Qty</th>
-                          <th className="px-6 py-4 font-medium text-right">Retail ($)</th>
-                          <th className="px-6 py-4 font-medium text-right">Cost ($)</th>
+                          <th className="px-6 py-4 font-medium text-right">Retail (Rs)</th>
+                          <th className="px-6 py-4 font-medium text-right">Cost (Rs)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -116,8 +116,8 @@ export function CatalogView() {
                               <td className="px-6 py-3 font-mono text-xs">{b.batch_number}</td>
                               <td className="px-6 py-3">{b.product_id}</td>
                               <td className="px-6 py-3 text-right font-mono">{b.quantity || 0}</td>
-                              <td className="px-6 py-3 text-right font-mono">${parseFloat(b.retail_price || 0).toFixed(2)}</td>
-                              <td className="px-6 py-3 text-right font-mono">${parseFloat(b.cost_price || 0).toFixed(2)}</td>
+                              <td className="px-6 py-3 text-right font-mono">Rs {parseFloat(b.retail_price || 0).toFixed(2)}</td>
+                              <td className="px-6 py-3 text-right font-mono">Rs {parseFloat(b.cost_price || 0).toFixed(2)}</td>
                             </motion.tr>
                           ))}
                         </AnimatePresence>
@@ -170,8 +170,8 @@ export function CatalogView() {
                                     <td className="px-6 py-3 font-mono text-xs">{b.batch_number}</td>
                                     <td className="px-6 py-3">{b.product_id}</td>
                                     <td className="px-6 py-3 text-right font-mono text-red-500">0</td>
-                                    <td className="px-6 py-3 text-right font-mono">${parseFloat(b.retail_price || 0).toFixed(2)}</td>
-                                    <td className="px-6 py-3 text-right font-mono">${parseFloat(b.cost_price || 0).toFixed(2)}</td>
+                                    <td className="px-6 py-3 text-right font-mono">Rs {parseFloat(b.retail_price || 0).toFixed(2)}</td>
+                                    <td className="px-6 py-3 text-right font-mono">Rs {parseFloat(b.cost_price || 0).toFixed(2)}</td>
                                   </motion.tr>
                                 ))}
                               </tbody>

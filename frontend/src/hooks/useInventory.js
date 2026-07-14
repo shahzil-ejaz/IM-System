@@ -23,6 +23,11 @@ export function useInventory() {
     queryFn: () => inventoryService.getSuppliers(0, 500)
   });
 
+  const { data: purchaseInvoices = [], isLoading: isLoadingInvoices } = useQuery({
+    queryKey: ['purchaseInvoices'],
+    queryFn: () => inventoryService.getPurchaseInvoices(0, 1000)
+  });
+
   // Calculate live balance per batch using the ledger transactions
   const batches = rawBatches.map(batch => {
     const batchTransactions = transactions.filter(t => t.batch_id === batch.id);
@@ -30,7 +35,7 @@ export function useInventory() {
     return { ...batch, quantity };
   });
 
-  return { products, batches, suppliers, isLoadingProducts, isLoadingBatches, isLoadingSuppliers };
+  return { products, batches, suppliers, purchaseInvoices, isLoadingProducts, isLoadingBatches, isLoadingSuppliers, isLoadingInvoices };
 }
 
 export function useCreateProduct() {
@@ -53,6 +58,7 @@ export function useCheckout() {
       // Invalidate inventory caches so we see the stock drop immediately
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     }
   });
 }

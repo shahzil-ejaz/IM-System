@@ -45,6 +45,7 @@ export function CreateProductDialog() {
     e.preventDefault();
     const payload = {
       ...formData,
+      barcode: formData.barcode?.trim() || null,
       category_id: formData.category_id ? Number(formData.category_id) : null,
       brand_id: formData.brand_id ? Number(formData.brand_id) : null,
       unit_id: Number(formData.unit_id),

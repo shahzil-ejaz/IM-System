@@ -162,9 +162,9 @@ export function ProcurementView() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-secondary uppercase">Calculated Total ($)</label>
+              <label className="text-xs font-semibold text-text-secondary uppercase">Calculated Total (Rs)</label>
               <div className="h-10 flex items-center px-3 border border-border/50 bg-slate-50/50 rounded-md font-mono font-medium text-lg">
-                ${calculateTotal().toFixed(2)}
+                Rs {calculateTotal().toFixed(2)}
               </div>
             </div>
           </CardContent>
@@ -191,8 +191,8 @@ export function ProcurementView() {
                 <div className="grid grid-cols-12 gap-4 p-4 bg-slate-50/50 text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   <div className="col-span-4">Product</div>
                   <div className="col-span-2">Quantity</div>
-                  <div className="col-span-2">Unit Cost ($)</div>
-                  <div className="col-span-2">Retail Price ($)</div>
+                  <div className="col-span-2">Unit Cost (Rs)</div>
+                  <div className="col-span-2">Retail Price (Rs)</div>
                   <div className="col-span-2 text-right">Actions</div>
                 </div>
                 <AnimatePresence>

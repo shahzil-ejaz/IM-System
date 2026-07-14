@@ -29,7 +29,7 @@ export function ProductSuggestionCard({ product, onAdd }) {
 
       <div className="flex items-center justify-between mt-2">
         <span className="font-mono font-bold text-text-primary">
-          ${parseFloat(product.retail_price || 0).toFixed(2)}
+          Rs {parseFloat(product.retail_price || 0).toFixed(2)}
         </span>
         
         <Button 
