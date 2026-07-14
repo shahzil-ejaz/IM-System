@@ -25,7 +25,9 @@ def seed():
         # Check if admin already exists
         existing = db.query(models.User).filter(models.User.username == ADMIN_USERNAME).first()
         if existing:
-            print(f"Admin user '{ADMIN_USERNAME}' already exists (id={existing.id}). Skipping.")
+            existing.password_hash = get_password_hash(ADMIN_PASSWORD)
+            db.commit()
+            print(f"Admin user '{ADMIN_USERNAME}' already exists (id={existing.id}). Password updated to match .env.")
             return
 
         admin = models.User(

@@ -96,169 +96,162 @@ export function ProcurementView() {
     <div className="space-y-6 max-w-5xl">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Receive Stock (Procurement)</h1>
-          <p className="text-text-secondary text-sm mt-1">Process incoming delivery batches from suppliers.</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <AnimatePresence>
-            {isSuccess && (
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0 }}
-                className="text-sm font-medium text-green-600 flex items-center bg-green-50 px-3 py-1.5 rounded-full"
-              >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Stock Received
-              </motion.div>
-            )}
-            {errorMessage && (
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0 }}
-                className="text-sm font-medium text-red-600 flex items-center bg-red-50 px-3 py-1.5 rounded-full"
-              >
-                {errorMessage}
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={receiveStockMutation.isPending || items.length === 0 || !supplierId}
-            className="transition-all"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {receiveStockMutation.isPending ? 'Committing...' : 'Commit Invoice'}
-          </Button>
+          <h1 className="text-lg font-bold text-text-primary tracking-tight">Receive Stock (Procurement)</h1>
+          <p className="text-text-secondary text-xs mt-0.5">Process incoming delivery batches from suppliers.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <Card className="col-span-3 shadow-sm bg-surface/90 backdrop-blur-md border-border/60">
-          <CardHeader className="py-5 border-b border-border/50">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-text-secondary">Invoice Details</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 grid grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-secondary uppercase">Supplier</label>
-              <select 
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={supplierId}
-                onChange={e => setSupplierId(e.target.value)}
-              >
-                <option value="">Select Supplier</option>
-                {suppliers.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+      <div className="border border-border bg-white rounded-lg overflow-hidden">
+        <div className="p-4 bg-slate-50 border-b border-border flex justify-between items-center">
+          <div className="flex gap-6">
+            <div>
+              <span className="block text-[9px] uppercase font-bold text-slate-400">Total Items</span>
+              <span className="font-mono text-sm font-semibold">{items.length}</span>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-secondary uppercase">Invoice Number</label>
-              <Input 
-                placeholder="INV-2023-XYZ" 
-                value={invoiceNumber}
-                onChange={e => setInvoiceNumber(e.target.value)}
-              />
+            <div>
+              <span className="block text-[9px] uppercase font-bold text-slate-400">Total Value</span>
+              <span className="font-mono text-sm font-semibold">Rs {calculateTotal().toFixed(2)}</span>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-secondary uppercase">Calculated Total (Rs)</label>
-              <div className="h-10 flex items-center px-3 border border-border/50 bg-slate-50/50 rounded-md font-mono font-medium text-lg">
-                Rs {calculateTotal().toFixed(2)}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-3 shadow-sm bg-surface/90 backdrop-blur-md border-border/60">
-          <CardHeader className="py-4 border-b border-border/50 flex flex-row items-center justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-text-secondary">Incoming Items</CardTitle>
-              <CardDescription>Map incoming stock to existing products</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={addItemRow}>
-              <Plus className="w-4 h-4 mr-2" /> Add Item Row
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <AnimatePresence>
+              {errorMessage && (
+                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-red-500 text-xs font-medium">
+                  {errorMessage}
+                </motion.span>
+              )}
+              {isSuccess && (
+                <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Invoice Received
+                </motion.span>
+              )}
+            </AnimatePresence>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={items.length === 0 || !supplierId || !invoiceNumber || receiveStockMutation.isPending}
+              className="bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.97] transition-transform duration-150 ease-out h-8 text-xs px-4"
+            >
+              {receiveStockMutation.isPending ? 'Committing...' : 'Commit to Ledger'}
             </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            {items.length === 0 ? (
-              <div className="p-12 text-center text-text-secondary">
-                <p className="text-sm">No items added to this invoice yet.</p>
-                <Button variant="link" onClick={addItemRow} className="mt-2">Start adding items</Button>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/50">
-                <div className="grid grid-cols-12 gap-4 p-4 bg-slate-50/50 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  <div className="col-span-4">Product</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-x divide-border">
+          <div className="p-4 space-y-2">
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Supplier</label>
+            <select 
+              className="w-full h-8 px-2 text-xs border border-border rounded-md bg-canvas focus:ring-2 focus:ring-slate-900 outline-none transition-all"
+              value={supplierId}
+              onChange={e => setSupplierId(e.target.value)}
+            >
+              <option value="">Select Supplier</option>
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="p-4 space-y-2">
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Invoice Number</label>
+            <Input 
+              placeholder="e.g. INV-2023-001" 
+              value={invoiceNumber}
+              onChange={e => setInvoiceNumber(e.target.value)}
+              className="h-8 text-xs px-2"
+            />
+          </div>
+          <div className="p-4 space-y-2">
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Warehouse</label>
+            <select 
+              className="w-full h-8 px-2 text-xs border border-border rounded-md bg-canvas outline-none"
+              value={warehouseId}
+              onChange={e => setWarehouseId(e.target.value)}
+              disabled
+            >
+              <option value="1">Primary Warehouse</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <Card className="shadow-sm border-border/60">
+        <CardHeader className="py-3 px-4 border-b border-border/50 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-semibold uppercase tracking-wider">Incoming Items</CardTitle>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => window.history.back()}
+              className="h-8 text-xs active:scale-[0.97] transition-transform duration-150 ease-out"
+            >
+              Cancel
+            </Button>
+            <Button size="sm" onClick={addItemRow} className="h-8 text-xs">
+              <Plus className="w-3.5 h-3.5 mr-1" /> Add Row
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {items.length === 0 ? (
+            <div className="p-8 text-center text-text-secondary text-xs">
+              No items added yet. Click "Add Row" to begin.
+            </div>
+          ) : (
+            <div className="divide-y divide-border/50 overflow-x-auto no-scrollbar">
+              <div className="min-w-[600px]">
+                <div className="grid grid-cols-12 gap-2 p-2 bg-slate-50/50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <div className="col-span-5 px-2">Product</div>
                   <div className="col-span-2">Quantity</div>
-                  <div className="col-span-2">Unit Cost (Rs)</div>
-                  <div className="col-span-2">Retail Price (Rs)</div>
-                  <div className="col-span-2 text-right">Actions</div>
+                  <div className="col-span-2">Cost</div>
+                  <div className="col-span-2">Retail</div>
+                  <div className="col-span-1"></div>
                 </div>
                 <AnimatePresence>
                   {items.map((item) => (
                     <motion.div 
                       key={item.id}
                       layout
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="grid grid-cols-12 gap-4 p-4 items-center overflow-hidden"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="grid grid-cols-12 gap-2 p-2 items-center border-b border-border/50 last:border-0"
                     >
-                      <div className="col-span-4">
+                      <div className="col-span-5">
                         <select 
-                          className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                          className="w-full h-8 px-2 text-xs border border-border rounded-md bg-canvas focus:ring-2 focus:ring-slate-900 outline-none transition-all"
                           value={item.product_id}
                           onChange={(e) => updateItem(item.id, 'product_id', e.target.value)}
                         >
-                          <option value="">Select a product...</option>
+                          <option value="">Select product...</option>
                           {products?.map(p => (
-                            <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
+                            <option key={p.id} value={p.id}>{p.name}</option>
                           ))}
                         </select>
                       </div>
                       <div className="col-span-2">
-                        <Input 
-                          type="number" 
-                          min="1" 
-                          value={item.quantity}
-                          onChange={(e) => updateItem(item.id, 'quantity', e.target.value)}
-                        />
+                        <Input type="number" className="h-8 text-xs" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} />
                       </div>
                       <div className="col-span-2">
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          value={item.unit_cost_price}
-                          onChange={(e) => updateItem(item.id, 'unit_cost_price', e.target.value)}
-                        />
+                        <Input type="number" className="h-8 text-xs" value={item.unit_cost_price} onChange={(e) => updateItem(item.id, 'unit_cost_price', e.target.value)} />
                       </div>
                       <div className="col-span-2">
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          value={item.retail_price}
-                          onChange={(e) => updateItem(item.id, 'retail_price', e.target.value)}
-                        />
+                        <Input type="number" className="h-8 text-xs" value={item.retail_price} onChange={(e) => updateItem(item.id, 'retail_price', e.target.value)} />
                       </div>
-                      <div className="col-span-2 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
+                      <div className="col-span-1 flex justify-center">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500" onClick={() => removeItem(item.id)}>
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -71,40 +71,40 @@ function LedgerTab() {
         </Button>
         <span className="text-sm text-text-secondary">{filtered.length} entries</span>
       </div>
-      <div className="border border-border rounded-lg overflow-hidden bg-surface shadow-sm">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-xs uppercase text-text-secondary">
+      <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
+        <table className="w-full min-w-[800px] text-sm text-left">
+          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-medium">ID</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Batch ID</th>
-              <th className="px-4 py-3 font-medium">Warehouse</th>
-              <th className="px-4 py-3 font-medium text-right">Qty</th>
-              <th className="px-4 py-3 font-medium">Reference</th>
-              <th className="px-4 py-3 font-medium">Notes</th>
-              <th className="px-4 py-3 font-medium">Timestamp</th>
+              <th className="px-3 py-2">ID</th>
+              <th className="px-3 py-2">Type</th>
+              <th className="px-3 py-2">Batch ID</th>
+              <th className="px-3 py-2">Warehouse</th>
+              <th className="px-3 py-2 text-right">Qty</th>
+              <th className="px-3 py-2">Reference</th>
+              <th className="px-3 py-2">Notes</th>
+              <th className="px-3 py-2">Timestamp</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan="8" className="px-4 py-8 text-center text-text-secondary">Loading…</td></tr>
+              <tr><td colSpan="8" className="px-3 py-6 text-center text-xs text-text-secondary">Loading…</td></tr>
             )}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan="8" className="px-4 py-8 text-center text-text-secondary">No transactions found.</td></tr>
+              <tr><td colSpan="8" className="px-3 py-6 text-center text-xs text-text-secondary">No transactions found.</td></tr>
             )}
             <AnimatePresence>
               {filtered.map(t => (
-                <motion.tr key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-text-secondary">#{t.id}</td>
-                  <td className="px-4 py-3"><Badge map={TYPE_BADGE} value={t.transaction_type} /></td>
-                  <td className="px-4 py-3 font-mono text-xs">{t.batch_id}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{t.warehouse_id}</td>
-                  <td className={`px-4 py-3 text-right font-mono font-semibold ${t.quantity > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                <motion.tr key={t.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150">
+                  <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{t.id}</td>
+                  <td className="px-3 py-2"><Badge map={TYPE_BADGE} value={t.transaction_type} /></td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{t.batch_id}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{t.warehouse_id}</td>
+                  <td className={`px-3 py-2 text-right font-mono font-semibold text-xs ${t.quantity > 0 ? 'text-green-600' : 'text-red-500'}`}>
                     {t.quantity > 0 ? '+' : ''}{t.quantity}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">{t.reference_id || '—'}</td>
-                  <td className="px-4 py-3 text-text-secondary text-xs max-w-xs truncate">{t.notes || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">{formatDate(t.created_at)}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{t.reference_id || '—'}</td>
+                  <td className="px-3 py-2 text-text-secondary text-xs max-w-xs truncate">{t.notes || '—'}</td>
+                  <td className="px-3 py-2 text-xs text-text-secondary whitespace-nowrap">{formatDate(t.created_at)}</td>
                 </motion.tr>
               ))}
             </AnimatePresence>
@@ -154,37 +154,37 @@ function PurchaseInvoicesTab() {
         </Button>
         <span className="text-sm text-text-secondary">{filtered.length} invoices</span>
       </div>
-      <div className="border border-border rounded-lg overflow-hidden bg-surface shadow-sm">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-xs uppercase text-text-secondary">
+      <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
+        <table className="w-full min-w-[800px] text-sm text-left">
+          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-medium">ID</th>
-              <th className="px-4 py-3 font-medium">Invoice #</th>
-              <th className="px-4 py-3 font-medium">Supplier ID</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium text-right">Total</th>
-              <th className="px-4 py-3 font-medium">Created At</th>
+              <th className="px-3 py-2">ID</th>
+              <th className="px-3 py-2">Invoice #</th>
+              <th className="px-3 py-2">Supplier ID</th>
+              <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2 text-right">Total</th>
+              <th className="px-3 py-2">Created At</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan="6" className="px-4 py-8 text-center text-text-secondary">Loading…</td></tr>
+              <tr><td colSpan="6" className="px-3 py-6 text-center text-xs text-text-secondary">Loading…</td></tr>
             )}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan="6" className="px-4 py-8 text-center text-text-secondary">No purchase invoices found.</td></tr>
+              <tr><td colSpan="6" className="px-3 py-6 text-center text-xs text-text-secondary">No purchase invoices found.</td></tr>
             )}
             <AnimatePresence>
               {filtered.map(inv => (
-                <motion.tr key={inv.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-text-secondary">#{inv.id}</td>
-                  <td className="px-4 py-3 font-mono text-xs font-semibold">{inv.invoice_number}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{inv.supplier_id}</td>
-                  <td className="px-4 py-3">
+                <motion.tr key={inv.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150">
+                  <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{inv.id}</td>
+                  <td className="px-3 py-2 font-mono text-xs font-semibold">{inv.invoice_number}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{inv.supplier_id}</td>
+                  <td className="px-3 py-2">
                     {inv.status === 'returned' ? (
                       <Badge map={STATUS_BADGE} value={inv.status} />
                     ) : (
                       <select
-                        className="text-xs font-medium px-2 py-1 rounded border border-border bg-surface text-text-primary"
+                        className="text-xs font-medium px-2 py-1 rounded border border-border bg-surface text-text-primary outline-none transition-all focus:ring-2 focus:ring-slate-900"
                         value={inv.status}
                         onChange={(e) => {
                           if (e.target.value === 'returned' && !window.confirm('Are you sure you want to return this invoice? This will delete the associated batches and stock transactions and cannot be undone.')) {
@@ -201,8 +201,8 @@ function PurchaseInvoicesTab() {
                       </select>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono font-semibold text-text-primary">{formatCurrency(inv.total_amount)}</td>
-                  <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">{formatDate(inv.created_at)}</td>
+                  <td className="px-3 py-2 text-right font-mono font-semibold text-xs text-text-primary">{formatCurrency(inv.total_amount)}</td>
+                  <td className="px-3 py-2 text-xs text-text-secondary whitespace-nowrap">{formatDate(inv.created_at)}</td>
                 </motion.tr>
               ))}
             </AnimatePresence>
@@ -238,42 +238,42 @@ function SalesInvoicesTab() {
         </Button>
         <span className="text-sm text-text-secondary">{filtered.length} receipts</span>
       </div>
-      <div className="border border-border rounded-lg overflow-hidden bg-surface shadow-sm">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-xs uppercase text-text-secondary">
+      <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
+        <table className="w-full min-w-[800px] text-sm text-left">
+          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-medium">ID</th>
-              <th className="px-4 py-3 font-medium">Receipt #</th>
-              <th className="px-4 py-3 font-medium">Cashier ID</th>
-              <th className="px-4 py-3 font-medium">Payment</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium text-right">Subtotal</th>
-              <th className="px-4 py-3 font-medium text-right">Tax</th>
-              <th className="px-4 py-3 font-medium text-right">Total</th>
-              <th className="px-4 py-3 font-medium">Created At</th>
+              <th className="px-3 py-2">ID</th>
+              <th className="px-3 py-2">Receipt #</th>
+              <th className="px-3 py-2">Cashier ID</th>
+              <th className="px-3 py-2">Payment</th>
+              <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2 text-right">Subtotal</th>
+              <th className="px-3 py-2 text-right">Tax</th>
+              <th className="px-3 py-2 text-right">Total</th>
+              <th className="px-3 py-2">Created At</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan="9" className="px-4 py-8 text-center text-text-secondary">Loading…</td></tr>
+              <tr><td colSpan="9" className="px-3 py-6 text-center text-xs text-text-secondary">Loading…</td></tr>
             )}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan="9" className="px-4 py-8 text-center text-text-secondary">No sales records found.</td></tr>
+              <tr><td colSpan="9" className="px-3 py-6 text-center text-xs text-text-secondary">No sales records found.</td></tr>
             )}
             <AnimatePresence>
               {filtered.map(inv => (
-                <motion.tr key={inv.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-text-secondary">#{inv.id}</td>
-                  <td className="px-4 py-3 font-mono text-xs font-semibold">{inv.receipt_number}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{inv.cashier_id}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 capitalize">{inv.payment_method}</span>
+                <motion.tr key={inv.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150">
+                  <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{inv.id}</td>
+                  <td className="px-3 py-2 font-mono text-[11px] font-semibold">{inv.receipt_number}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{inv.cashier_id}</td>
+                  <td className="px-3 py-2">
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 capitalize">{inv.payment_method}</span>
                   </td>
-                  <td className="px-4 py-3"><Badge map={STATUS_BADGE} value={inv.status} /></td>
-                  <td className="px-4 py-3 text-right font-mono text-xs">{formatCurrency(inv.subtotal)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-xs">{formatCurrency(inv.tax_amount)}</td>
-                  <td className="px-4 py-3 text-right font-mono font-semibold text-text-primary">{formatCurrency(inv.total_amount)}</td>
-                  <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">{formatDate(inv.created_at)}</td>
+                  <td className="px-3 py-2"><Badge map={STATUS_BADGE} value={inv.status} /></td>
+                  <td className="px-3 py-2 text-right font-mono text-[11px]">{formatCurrency(inv.subtotal)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-[11px]">{formatCurrency(inv.tax_amount)}</td>
+                  <td className="px-3 py-2 text-right font-mono font-semibold text-xs text-text-primary">{formatCurrency(inv.total_amount)}</td>
+                  <td className="px-3 py-2 text-xs text-text-secondary whitespace-nowrap">{formatDate(inv.created_at)}</td>
                 </motion.tr>
               ))}
             </AnimatePresence>
@@ -330,47 +330,48 @@ function AdminActionsTab() {
         </Button>
         <span className="text-sm text-text-secondary">{filtered.length} events</span>
       </div>
-      <div className="border border-border rounded-lg overflow-hidden bg-surface shadow-sm">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-xs uppercase text-text-secondary">
+      <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
+        <table className="w-full min-w-[800px] text-sm text-left">
+          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-medium">ID</th>
-              <th className="px-4 py-3 font-medium">Action</th>
-              <th className="px-4 py-3 font-medium">Actor</th>
-              <th className="px-4 py-3 font-medium">Resource</th>
-              <th className="px-4 py-3 font-medium">Detail</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">IP</th>
-              <th className="px-4 py-3 font-medium">Timestamp</th>
+              <th className="px-3 py-2">ID</th>
+              <th className="px-3 py-2">Action</th>
+              <th className="px-3 py-2">Actor</th>
+              <th className="px-3 py-2">Resource</th>
+              <th className="px-3 py-2">Detail</th>
+              <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2">IP</th>
+              <th className="px-3 py-2">Timestamp</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan="8" className="px-4 py-8 text-center text-text-secondary">Loading…</td></tr>
+              <tr><td colSpan="8" className="px-3 py-6 text-center text-xs text-text-secondary">Loading…</td></tr>
             )}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan="8" className="px-4 py-8 text-center text-text-secondary">No admin events recorded yet. They will appear here as actions are taken.</td></tr>
+              <tr><td colSpan="8" className="px-3 py-6 text-center text-xs text-text-secondary">No admin actions found.</td></tr>
             )}
             <AnimatePresence>
-              {filtered.map(log => {
-                const badgeCls = ACTION_BADGE[log.action]?.cls || 'bg-gray-100 text-gray-600';
-                return (
-                  <motion.tr key={log.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-text-secondary">#{log.id}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badgeCls}`}>{log.action}</span>
-                    </td>
-                    <td className="px-4 py-3 text-xs font-semibold">{log.actor_username || <span className="text-text-secondary italic">system</span>}</td>
-                    <td className="px-4 py-3 text-xs text-text-secondary">{log.resource}{log.resource_id ? ` #${log.resource_id}` : ''}</td>
-                    <td className="px-4 py-3 text-xs text-text-secondary max-w-xs truncate" title={log.detail}>{log.detail || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${log.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{log.status}</span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-text-secondary">{log.ip_address || '—'}</td>
-                    <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">{formatDate(log.created_at)}</td>
-                  </motion.tr>
-                );
-              })}
+              {filtered.map(log => (
+                <motion.tr key={log.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150">
+                  <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{log.id}</td>
+                  <td className="px-3 py-2">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm ${ACTION_BADGE[log.action]?.cls || 'bg-slate-100 text-slate-700'}`}>
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 font-medium text-xs">{log.actor_username || 'System'}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{log.resource || '—'}</td>
+                  <td className="px-3 py-2 text-xs text-text-secondary max-w-sm truncate" title={log.detail}>{log.detail || '—'}</td>
+                  <td className="px-3 py-2">
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${log.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {log.status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{log.ip_address || '—'}</td>
+                  <td className="px-3 py-2 text-xs text-text-secondary whitespace-nowrap">{formatDate(log.timestamp)}</td>
+                </motion.tr>
+              ))}
             </AnimatePresence>
           </tbody>
         </table>
@@ -395,22 +396,22 @@ export function GlobalAuditView() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2">
-            <Database className="w-6 h-6 text-text-secondary" /> Global Audit Log
+          <h1 className="text-lg font-bold text-text-primary tracking-tight flex items-center gap-2">
+            <Database className="w-5 h-5 text-text-secondary" /> Global Audit Log
           </h1>
-          <p className="text-text-secondary text-sm mt-1">Complete operational history across all system modules.</p>
+          <p className="text-text-secondary text-xs mt-0.5">Complete operational history across all system modules.</p>
         </div>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-4">
         {/* Sidebar tabs */}
-        <Card className="w-56 shrink-0 h-fit shadow-sm bg-surface/90 backdrop-blur-md">
-          <CardContent className="p-2 flex flex-col gap-1">
+        <Card className="w-48 shrink-0 h-fit shadow-sm bg-surface/90 backdrop-blur-md">
+          <CardContent className="p-1.5 flex flex-col gap-0.5">
             {tabs.map(tab => (
               <Button
                 key={tab.id}
                 variant={activeTab === tab.id ? 'secondary' : 'ghost'}
-                className="justify-start w-full gap-2"
+                className="justify-start w-full gap-2 transition-transform duration-150 ease-out active:scale-[0.98] h-8 text-xs px-2"
                 onClick={() => setActiveTab(tab.id)}
               >
                 {tab.icon}
@@ -422,12 +423,12 @@ export function GlobalAuditView() {
 
         {/* Content area */}
         <Card className="flex-1 shadow-sm bg-surface/90 backdrop-blur-md min-w-0">
-          <CardHeader className="py-5 border-b border-border/50">
-            <CardTitle className="text-lg font-semibold">
+          <CardHeader className="py-3 px-4 border-b border-border/50">
+            <CardTitle className="text-sm font-semibold">
               {tabs.find(t => t.id === activeTab)?.label}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 overflow-x-auto">
+          <CardContent className="p-4 overflow-x-auto">
             {activeTab === 'admin'     && <AdminActionsTab />}
             {activeTab === 'ledger'    && <LedgerTab />}
             {activeTab === 'purchases' && <PurchaseInvoicesTab />}

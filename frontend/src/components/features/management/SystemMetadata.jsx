@@ -69,13 +69,13 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
 
   return (
     <div className="space-y-6 w-full max-w-3xl">
-      <form onSubmit={handleCreate} className="flex gap-3">
+      <form onSubmit={handleCreate} className="flex gap-2">
         <Input 
           placeholder={`New ${type.slice(0, -1)} name...`} 
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
           disabled={createMutation.isPending}
-          className="bg-surface flex-1"
+          className="bg-surface flex-1 h-8 text-xs"
         />
         {hasSecondaryField && (
           <Input 
@@ -83,23 +83,23 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
             value={newSecondary}
             onChange={(e) => setNewSecondary(e.target.value)}
             disabled={createMutation.isPending}
-            className="bg-surface w-64"
+            className="bg-surface w-48 h-8 text-xs"
           />
         )}
-        <Button type="submit" disabled={createMutation.isPending || !isFormValid}>
-          <Plus className="w-4 h-4 mr-2" />
+        <Button type="submit" disabled={createMutation.isPending || !isFormValid} className="h-8 text-xs active:scale-[0.97] transition-transform duration-150 ease-out">
+          <Plus className="w-3.5 h-3.5 mr-1" />
           Add
         </Button>
       </form>
 
-      <div className="border border-border rounded-lg overflow-hidden bg-surface shadow-sm">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-xs uppercase text-text-secondary">
+      <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
+        <table className="w-full min-w-[500px] text-sm text-left">
+          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
-              <th className="px-6 py-3 font-medium">ID</th>
-              <th className="px-6 py-3 font-medium">Name</th>
-              {hasSecondaryField && <th className="px-6 py-3 font-medium">{getSecondaryHeader()}</th>}
-              <th className="px-6 py-3 font-medium text-right">Actions</th>
+              <th className="px-3 py-2">ID</th>
+              <th className="px-3 py-2">Name</th>
+              {hasSecondaryField && <th className="px-3 py-2">{getSecondaryHeader()}</th>}
+              <th className="px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -110,25 +110,25 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                  className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors"
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150"
                 >
-                  <td className="px-6 py-3 font-mono text-xs text-text-secondary">{item.id}</td>
-                  <td className="px-6 py-3 font-medium">{item.name}</td>
+                  <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{item.id}</td>
+                  <td className="px-3 py-2 text-xs font-medium">{item.name}</td>
                   {hasSecondaryField && (
-                    <td className="px-6 py-3 text-text-secondary">
+                    <td className="px-3 py-2 text-xs text-text-secondary">
                       {type === 'units' ? item.short_name : type === 'suppliers' ? item.contact : item.location}
                     </td>
                   )}
-                  <td className="px-6 py-3 text-right">
+                  <td className="px-3 py-2 text-right">
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2"
+                      className="text-slate-400 hover:text-red-500 hover:bg-red-50 h-7 w-7 p-0 active:scale-[0.97] transition-transform duration-150 ease-out"
                       onClick={() => deleteMutation.mutate(item.id)}
                       disabled={deleteMutation.isPending}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </td>
                 </motion.tr>
@@ -136,14 +136,14 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
             </AnimatePresence>
             {items.length === 0 && !isLoading && (
               <tr>
-                <td colSpan={hasSecondaryField ? "4" : "3"} className="px-6 py-8 text-center text-text-secondary">
+                <td colSpan={hasSecondaryField ? "4" : "3"} className="px-3 py-6 text-center text-xs text-text-secondary">
                   No {type} found.
                 </td>
               </tr>
             )}
             {isLoading && (
               <tr>
-                <td colSpan={hasSecondaryField ? "4" : "3"} className="px-6 py-8 text-center text-text-secondary">
+                <td colSpan={hasSecondaryField ? "4" : "3"} className="px-3 py-6 text-center text-xs text-text-secondary">
                   Loading...
                 </td>
               </tr>
@@ -158,11 +158,11 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
 export function SystemMetadata() {
   const { user } = useAuth();
   
+  const [activeTab, setActiveTab] = useState('brands');
+
   if (user?.role !== 'admin') {
     return <div className="p-8 text-red-500">Access Denied. Admins only.</div>;
   }
-
-  const [activeTab, setActiveTab] = useState('brands');
 
   const tabs = [
     { id: 'brands', name: 'Brands', service: metadataService.getBrands, create: metadataService.createBrand, del: metadataService.deleteBrand },
@@ -178,19 +178,19 @@ export function SystemMetadata() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary tracking-tight">System Metadata</h1>
-          <p className="text-text-secondary text-sm mt-1">Manage global parameters and underlying data resources.</p>
+          <h1 className="text-lg font-bold text-text-primary tracking-tight">System Metadata</h1>
+          <p className="text-text-secondary text-xs mt-0.5">Manage global parameters and underlying data resources.</p>
         </div>
       </div>
 
-      <div className="flex gap-6">
-        <Card className="w-64 shrink-0 h-fit shadow-sm bg-surface/90 backdrop-blur-md">
-          <CardContent className="p-2 flex flex-col gap-1">
+      <div className="flex flex-col md:flex-row gap-4">
+        <Card className="w-full md:w-48 shrink-0 h-fit shadow-sm bg-surface/90 backdrop-blur-md">
+          <CardContent className="p-1.5 flex flex-row md:flex-col gap-0.5 overflow-x-auto no-scrollbar">
             {tabs.map(tab => (
               <Button
                 key={tab.id}
                 variant={activeTab === tab.id ? 'secondary' : 'ghost'}
-                className="justify-start w-full transition-all"
+                className="justify-start whitespace-nowrap h-8 text-xs px-3 md:px-2 active:scale-[0.98] transition-transform duration-150 ease-out"
                 onClick={() => setActiveTab(tab.id)}
               >
                 {tab.name}
@@ -200,10 +200,10 @@ export function SystemMetadata() {
         </Card>
 
         <Card className="flex-1 shadow-sm bg-surface/90 backdrop-blur-md">
-          <CardHeader className="py-5 border-b border-border/50 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-semibold capitalize">{activeTab} Configuration</CardTitle>
+          <CardHeader className="py-3 px-4 border-b border-border/50 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-semibold capitalize">{activeTab} Configuration</CardTitle>
           </CardHeader>
-          <CardContent className="p-8 flex justify-center min-h-[400px]">
+          <CardContent className="p-4 flex justify-center min-h-[300px]">
             {activeTabData && (
               <MetadataTable 
                 type={activeTabData.id} 
