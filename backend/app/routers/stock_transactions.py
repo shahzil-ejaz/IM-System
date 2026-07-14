@@ -59,13 +59,58 @@ def get_all_transactions(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
 ):
     """
     Returns the complete history of all stock movements, sorted by newest first.
     """
     transactions = db.query(models.StockTransaction).order_by(models.StockTransaction.created_at.desc()).offset(skip).limit(limit).all()
     return transactions
+
+
+@router.get("/enriched", response_model=List[schemas.StockTransactionEnriched])
+def get_all_transactions_enriched(
+    skip: int = 0,
+    limit: int = 500,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+):
+    """
+    Returns stock transactions with joined product, batch, warehouse and user names.
+    """
+    rows = (
+        db.query(models.StockTransaction)
+        .order_by(models.StockTransaction.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    results = []
+    for tx in rows:
+        batch = db.query(models.ProductBatch).filter(models.ProductBatch.id == tx.batch_id).first()
+        product = db.query(models.Product).filter(models.Product.id == batch.product_id).first() if batch else None
+        warehouse = db.query(models.Warehouse).filter(models.Warehouse.id == tx.warehouse_id).first()
+        user = db.query(models.User).filter(models.User.id == tx.user_id).first()
+
+        results.append(schemas.StockTransactionEnriched(
+            id=tx.id,
+            transaction_type=tx.transaction_type,
+            quantity=tx.quantity,
+            reference_id=tx.reference_id,
+            notes=tx.notes,
+            created_at=tx.created_at,
+            batch_number=batch.batch_number if batch else None,
+            product_name=product.name if product else None,
+            product_sku=product.sku if product else None,
+            warehouse_name=warehouse.name if warehouse else None,
+            actor_username=user.username if user else None,
+            batch_id=tx.batch_id,
+            warehouse_id=tx.warehouse_id,
+            user_id=tx.user_id,
+        ))
+
+    return results
 
 
 # ==========================================

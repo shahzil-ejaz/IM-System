@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app import models, schemas
+from app.routers.audit_logs import record_audit
 from app.database import get_db
 from app.auth import require_role
 
@@ -26,12 +27,11 @@ def create_category(
 
     # Unpack Pydantic schema to SQLAlchemy model
     new_category = models.Category(**category.model_dump())
-
-    # Save to database
     db.add(new_category)
+    db.flush()
+    record_audit(db, "CATEGORY_CREATED", actor=current_user, resource="Category", resource_id=new_category.id, detail=f"Category '{new_category.name}' created")
     db.commit()
     db.refresh(new_category)
-
     return new_category
 
 
@@ -84,10 +84,9 @@ def update_category(
     if name_conflict:
         raise HTTPException(status_code=400, detail="Another category with this name already exists")
 
-    # Update the data
     category_query.update(category_update.model_dump(), synchronize_session=False)
+    record_audit(db, "CATEGORY_UPDATED", actor=current_user, resource="Category", resource_id=category_id, detail=f"Category ID {category_id} updated to '{category_update.name}'")
     db.commit()
-
     return category_query.first()
 
 
@@ -104,9 +103,8 @@ def delete_category(
     if not existing_category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
-    # Delete from database
+    cat_name = existing_category.name
     category_query.delete(synchronize_session=False)
+    record_audit(db, "CATEGORY_DELETED", actor=current_user, resource="Category", resource_id=category_id, detail=f"Category '{cat_name}' (ID {category_id}) deleted")
     db.commit()
-
-    # A 204 No Content response requires no data to be returned
     return None

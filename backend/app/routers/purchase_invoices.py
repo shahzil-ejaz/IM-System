@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app import models, schemas
+from app.routers.audit_logs import record_audit
 from app.database import get_db
 from app.auth import require_role
 
@@ -28,7 +29,7 @@ def receive_new_stock(
             supplier_id=payload.supplier_id,
             invoice_number=payload.invoice_number,
             total_amount=payload.total_amount,
-            status="completed"
+            status="pending"
         )
         db.add(new_invoice)
 
@@ -77,6 +78,13 @@ def receive_new_stock(
             db.flush() # Ensure it's tracked for the next loop iteration
 
         # STEP 4: ALL OR NOTHING. Save everything to the database permanently.
+        db.commit()
+
+        record_audit(
+            db, "STOCK_RECEIVED", actor=current_user,
+            resource="PurchaseInvoice", resource_id=payload.invoice_number,
+            detail=f"Stock received via invoice '{payload.invoice_number}' from supplier ID {payload.supplier_id} — {len(payload.items)} item(s)",
+        )
         db.commit()
 
         return {"message": "Stock successfully received and ledger updated."}

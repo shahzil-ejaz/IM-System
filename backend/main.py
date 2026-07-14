@@ -18,6 +18,7 @@ from app.routers import (
     purchase_invoices,
     stock_transactions,
     sales,
+    audit_logs,
 )
 
 # Initialize the application
@@ -52,6 +53,7 @@ app.include_router(suppliers.router)
 app.include_router(purchase_invoices.router)
 app.include_router(stock_transactions.router)
 app.include_router(sales.router)
+app.include_router(audit_logs.router)
 
 
 # A simple health check route

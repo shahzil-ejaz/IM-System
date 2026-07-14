@@ -1,0 +1,91 @@
+import { create } from 'zustand';
+
+// Calculate totals based on cart items
+const calculateTotals = (items, discountAmount = 0, taxRate = 0) => {
+  const subtotal = items.reduce((sum, item) => sum + (item.retail_price * item.quantity), 0);
+  const tax = subtotal * taxRate;
+  const total = subtotal + tax - discountAmount;
+  return { subtotal, tax, total };
+};
+
+export const useCartStore = create((set, get) => ({
+  items: [],
+  discountAmount: 0,
+  taxRate: 0.15, // Defaulting to 15% as per requirements example
+  heldCart: null,
+  subtotal: 0,
+  tax: 0,
+  total: 0,
+
+  // Actions
+  addItem: (productBatch) => set((state) => {
+    // productBatch should contain: batch_id, product_id, sku, barcode, name, retail_price, max_quantity
+    const existingItem = state.items.find(i => i.batch_id === productBatch.batch_id);
+    
+    let newItems;
+    if (existingItem) {
+      if (existingItem.quantity >= productBatch.max_quantity) return state; // Don't exceed stock
+      newItems = state.items.map(i => 
+        i.batch_id === productBatch.batch_id 
+          ? { ...i, quantity: i.quantity + 1 }
+          : i
+      );
+    } else {
+      newItems = [...state.items, { ...productBatch, quantity: 1 }];
+    }
+
+    return { items: newItems, ...calculateTotals(newItems, state.discountAmount, state.taxRate) };
+  }),
+
+  updateQuantity: (batchId, delta) => set((state) => {
+    let newItems = state.items.map(i => {
+      if (i.batch_id === batchId) {
+        const newQty = i.quantity + delta;
+        // Don't go below 1 (use removeItem to delete), and don't exceed max_quantity
+        if (newQty > 0 && newQty <= i.max_quantity) {
+          return { ...i, quantity: newQty };
+        }
+      }
+      return i;
+    });
+
+    return { items: newItems, ...calculateTotals(newItems, state.discountAmount, state.taxRate) };
+  }),
+
+  removeItem: (batchId) => set((state) => {
+    const newItems = state.items.filter(i => i.batch_id !== batchId);
+    return { items: newItems, ...calculateTotals(newItems, state.discountAmount, state.taxRate) };
+  }),
+
+  setDiscount: (amount) => set((state) => ({
+    discountAmount: amount,
+    ...calculateTotals(state.items, amount, state.taxRate)
+  })),
+
+  clearCart: () => set((state) => ({
+    items: [],
+    discountAmount: 0,
+    ...calculateTotals([], 0, state.taxRate)
+  })),
+
+  // Hold / Recall features
+  holdCart: () => set((state) => {
+    if (state.items.length === 0) return state;
+    return {
+      heldCart: { items: state.items, discountAmount: state.discountAmount },
+      items: [],
+      discountAmount: 0,
+      ...calculateTotals([], 0, state.taxRate)
+    };
+  }),
+
+  recallCart: () => set((state) => {
+    if (!state.heldCart) return state;
+    return {
+      items: state.heldCart.items,
+      discountAmount: state.heldCart.discountAmount,
+      heldCart: null,
+      ...calculateTotals(state.heldCart.items, state.heldCart.discountAmount, state.taxRate)
+    };
+  })
+}));

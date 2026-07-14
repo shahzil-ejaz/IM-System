@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app import models, schemas
+from app.routers.audit_logs import record_audit
 from app.database import get_db
 from app.auth import require_role
 
@@ -24,6 +25,8 @@ def create_brand(
 
     new_brand = models.Brand(**brand.model_dump())
     db.add(new_brand)
+    db.flush()
+    record_audit(db, "BRAND_CREATED", actor=current_user, resource="Brand", resource_id=new_brand.id, detail=f"Brand '{new_brand.name}' created")
     db.commit()
     db.refresh(new_brand)
     return new_brand
@@ -74,6 +77,7 @@ def update_brand(
         raise HTTPException(status_code=400, detail="Another brand with this name already exists")
 
     brand_query.update(brand_update.model_dump(), synchronize_session=False)
+    record_audit(db, "BRAND_UPDATED", actor=current_user, resource="Brand", resource_id=brand_id, detail=f"Brand ID {brand_id} updated to '{brand_update.name}'")
     db.commit()
     return brand_query.first()
 
@@ -88,6 +92,9 @@ def delete_brand(
     if not brand_query.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
 
+    brand = brand_query.first()
+    brand_name = brand.name
     brand_query.delete(synchronize_session=False)
+    record_audit(db, "BRAND_DELETED", actor=current_user, resource="Brand", resource_id=brand_id, detail=f"Brand '{brand_name}' (ID {brand_id}) deleted")
     db.commit()
     return None

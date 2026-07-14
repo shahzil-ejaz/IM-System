@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Boolean, Date, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Boolean, Date, Text, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship
 import datetime
 
@@ -161,3 +161,22 @@ class SalesItem(Base):
 
     # FIX: Added back-reference to parent invoice
     invoice = relationship("SalesInvoice", back_populates="items")
+
+
+# ==========================================
+# 7. SYSTEM AUDIT LOG
+# ==========================================
+class AuditLog(Base):
+    """Records every significant system action for administrative review."""
+    __tablename__ = "audit_logs"
+    id = Column(Integer, primary_key=True, index=True)
+
+    actor_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Who did it (null for system/anon)
+    actor_username = Column(String, nullable=True)                     # Snapshot of username at time of action
+    action = Column(String, nullable=False)                            # e.g. "USER_CREATED", "PRODUCT_DELETED"
+    resource = Column(String, nullable=True)                           # e.g. "User", "Product", "Category"
+    resource_id = Column(String, nullable=True)                        # ID of the affected record
+    detail = Column(Text, nullable=True)                               # Human-readable description
+    status = Column(String, default="success")                         # "success" or "failure"
+    ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)

@@ -121,6 +121,26 @@ class StockTransactionResponse(StockTransactionBase):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+class StockTransactionEnriched(BaseModel):
+    """Enriched view of a stock transaction with resolved names for the UI."""
+    id: int
+    transaction_type: TransactionType
+    quantity: int
+    reference_id: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    # Resolved names
+    batch_number: Optional[str] = None
+    product_name: Optional[str] = None
+    product_sku: Optional[str] = None
+    warehouse_name: Optional[str] = None
+    actor_username: Optional[str] = None
+    # Raw IDs kept for reference
+    batch_id: int
+    warehouse_id: int
+    user_id: int
+    model_config = ConfigDict(from_attributes=True)
+
 
 class SupplierBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=150)
@@ -201,3 +221,19 @@ class ReceiveStockPayload(BaseModel):
     total_amount: Decimal = Field(..., max_digits=12, decimal_places=2)
     received_by_user_id: int
     items: List[IncomingStockItem]
+
+
+# ─── AUDIT LOG ───────────────────────────────────────────────────────────────
+
+class AuditLogResponse(BaseModel):
+    id: int
+    actor_id: Optional[int] = None
+    actor_username: Optional[str] = None
+    action: str
+    resource: Optional[str] = None
+    resource_id: Optional[str] = None
+    detail: Optional[str] = None
+    status: str
+    ip_address: Optional[str] = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
