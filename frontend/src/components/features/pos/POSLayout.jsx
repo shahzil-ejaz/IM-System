@@ -19,7 +19,8 @@ export function POSLayout() {
   const checkoutMutation = useCheckout();
 
   // Combine products and batches to create searchable active inventory cards
-  const liveInventory = useMemo(() => {
+  // Each batch is tracked individually for cart/checkout operations
+  const batchInventory = useMemo(() => {
     return batches
       .filter(batch => batch.quantity > 0)          // hide sold-out batches
       .map(batch => {
@@ -38,9 +39,40 @@ export function POSLayout() {
       });
   }, [products, batches]);
 
+  // Group batches by product for suggestion cards (no duplicates)
+  const liveInventory = useMemo(() => {
+    const grouped = {};
+    for (const item of batchInventory) {
+      if (!grouped[item.product_id]) {
+        grouped[item.product_id] = {
+          ...item,
+          current_balance: 0,    // will aggregate below
+          max_quantity: 0,
+          _batches: [],          // keep refs to individual batches for FIFO selection
+        };
+      }
+      grouped[item.product_id].current_balance += item.current_balance;
+      grouped[item.product_id].max_quantity += item.max_quantity;
+      grouped[item.product_id]._batches.push(item);
+    }
+    return Object.values(grouped);
+  }, [batchInventory]);
+
+  // Pick the first batch that still has room, then add it to cart
+  const handleAddFromSuggestion = (product) => {
+    const cartItems = useCartStore.getState().items;
+    for (const batch of product._batches) {
+      const inCart = cartItems.find(i => i.batch_id === batch.batch_id);
+      if ((inCart?.quantity || 0) < batch.current_balance) {
+        addItem(batch);
+        return;
+      }
+    }
+  };
+
   // Handle barcode scanner input
   useScanner((barcode) => {
-    const matchedItem = liveInventory.find(p => p.sku === barcode || p.id.toString() === barcode || p.batch_number === barcode);
+    const matchedItem = batchInventory.find(p => p.sku === barcode || p.id.toString() === barcode || p.batch_number === barcode);
     if (matchedItem && matchedItem.current_balance > 0) {
       addItem(matchedItem);
     }
@@ -48,22 +80,67 @@ export function POSLayout() {
 
   const toggleLayout = () => setIsExpanded(!isExpanded);
 
+  // Group cart items by product for display (cashier sees one row per product)
+  const groupedCartItems = useMemo(() => {
+    const grouped = {};
+    for (const item of items) {
+      if (!grouped[item.product_id]) {
+        grouped[item.product_id] = {
+          product_id: item.product_id,
+          name: item.name,
+          sku: item.sku,
+          retail_price: item.retail_price,
+          totalQuantity: 0,
+          totalMax: 0,
+        };
+      }
+      grouped[item.product_id].totalQuantity += item.quantity;
+      grouped[item.product_id].totalMax += item.max_quantity;
+    }
+    return Object.values(grouped);
+  }, [items]);
+
+  // Increment: add 1 using FIFO batch selection
+  const handleIncrement = (productId) => {
+    const productGroup = liveInventory.find(p => p.product_id === productId);
+    if (productGroup) handleAddFromSuggestion(productGroup);
+  };
+
+  // Decrement: remove 1 from the last batch that has items in cart (LIFO)
+  const handleDecrement = (productId) => {
+    const productItems = items.filter(i => i.product_id === productId);
+    if (productItems.length === 0) return;
+    const lastBatch = productItems[productItems.length - 1];
+    if (lastBatch.quantity <= 1) {
+      removeItem(lastBatch.batch_id);
+    } else {
+      updateQuantity(lastBatch.batch_id, -1);
+    }
+  };
+
+  // Remove all batches for this product from cart
+  const handleRemoveProduct = (productId) => {
+    const productItems = items.filter(i => i.product_id === productId);
+    for (const item of productItems) {
+      removeItem(item.batch_id);
+    }
+  };
+
   const handleCheckout = async () => {
     if (items.length === 0) return;
-    
+
     try {
       const payload = {
-        cashier_id: user?.id || 1, // Fallback if user ID missing
-        payment_method: paymentMethod, // Now uses active state
+        cashier_id: user?.id || 1,
+        payment_method: paymentMethod,
         discount_amount: discountAmount,
         items: items.map(i => ({ batch_id: i.batch_id, quantity: i.quantity }))
       };
-      
+
       await checkoutMutation.mutateAsync(payload);
-      
-      // Success: Clear the cart
+
       clearCart();
-      alert('Checkout successful!'); // Simple feedback
+      alert('Checkout successful!');
     } catch (error) {
       console.error("Checkout failed:", error);
       alert('Checkout failed. Check network or stock balances.');
@@ -107,26 +184,27 @@ export function POSLayout() {
         {/* Active Cart Section */}
         <section className={`flex flex-col flex-1 bg-surface transition-all duration-300 ease-in-out`}>
           <div className="flex-1 overflow-y-auto no-scrollbar p-0">
-            {items.length === 0 ? (
+            {groupedCartItems.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-text-secondary">
                 <p className="text-lg mb-2">Cart is empty</p>
                 <p className="text-sm">Scan an item or select from suggestions</p>
               </div>
             ) : (
               <AnimatePresence>
-                {items.map(item => (
+                {groupedCartItems.map(item => (
                   <motion.div
-                    key={item.batch_id}
+                    key={item.product_id}
                     layout
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <POSCartRow 
-                      item={item} 
-                      onUpdateQuantity={updateQuantity}
-                      onRemove={removeItem}
+                    <POSCartRow
+                      item={item}
+                      onIncrement={handleIncrement}
+                      onDecrement={handleDecrement}
+                      onRemove={handleRemoveProduct}
                     />
                   </motion.div>
                 ))}
@@ -134,8 +212,8 @@ export function POSLayout() {
             )}
           </div>
           {!isExpanded && (
-            <ResponsiveSummaryPanel 
-              isExpanded={false} 
+            <ResponsiveSummaryPanel
+              isExpanded={false}
               onProcessCheckout={handleCheckout}
               paymentMethod={paymentMethod}
               setPaymentMethod={setPaymentMethod}
@@ -145,9 +223,9 @@ export function POSLayout() {
 
         {/* Dynamic Right Side: Either Suggestions or Expanded Checkout Panel */}
         {isExpanded ? (
-          <ResponsiveSummaryPanel 
-            isExpanded={true} 
-            onProcessCheckout={handleCheckout} 
+          <ResponsiveSummaryPanel
+            isExpanded={true}
+            onProcessCheckout={handleCheckout}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
           />
@@ -159,10 +237,10 @@ export function POSLayout() {
             <div className="flex-1 overflow-y-auto p-4">
               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                 {liveInventory.map(product => (
-                  <ProductSuggestionCard 
-                    key={product.id} 
-                    product={product} 
-                    onAdd={addItem} 
+                  <ProductSuggestionCard
+                    key={product.product_id}
+                    product={product}
+                    onAdd={handleAddFromSuggestion}
                   />
                 ))}
               </div>

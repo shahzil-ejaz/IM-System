@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from typing import List
+
+class StatusUpdate(BaseModel):
+    new_status: str
 
 from app import models, schemas
 from app.routers.audit_logs import record_audit
@@ -134,13 +138,14 @@ def get_single_purchase_invoice(
 @router.patch("/{invoice_id}/status", response_model=schemas.PurchaseInvoiceResponse)
 def update_invoice_status(
     invoice_id: int,
-    new_status: str,
+    payload: StatusUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_role(["admin", "manager"])),
 ):
     """
-    Only allows updating the status (e.g., 'pending' to 'paid').
-    Does NOT alter the ledger or batches.
+    Updates the status (e.g., 'pending' to 'paid').
+    If status is set to 'returned', it deletes the associated stock transactions and batches.
+    Once returned, it cannot be changed.
     """
     invoice_query = db.query(models.PurchaseInvoice).filter(models.PurchaseInvoice.id == invoice_id)
     invoice = invoice_query.first()
@@ -148,11 +153,45 @@ def update_invoice_status(
     if not invoice:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Purchase invoice not found")
 
+    if invoice.status == "returned":
+        raise HTTPException(status_code=400, detail="Invoice is already returned and cannot be changed.")
+
     valid_statuses = ["pending", "paid", "returned"]
-    if new_status not in valid_statuses:
+    if payload.new_status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
 
-    invoice_query.update({"status": new_status}, synchronize_session=False)
+    if payload.new_status == "returned":
+        try:
+            # Find related stock transactions
+            transactions = db.query(models.StockTransaction).filter(
+                models.StockTransaction.reference_id == invoice.invoice_number,
+                models.StockTransaction.transaction_type == "purchase"
+            ).all()
+            
+            batch_ids = [tx.batch_id for tx in transactions]
+            
+            # Delete transactions first (to resolve FK constraint issues)
+            for tx in transactions:
+                db.delete(tx)
+                
+            # Force SQLAlchemy to execute the transaction deletions first.
+            # Since there is no explicit ORM relationship connecting StockTransaction and ProductBatch,
+            # SQLAlchemy might try to delete the batch before the transaction, triggering a false constraint error.
+            db.flush()
+                
+            # Delete batches
+            if batch_ids:
+                batches = db.query(models.ProductBatch).filter(models.ProductBatch.id.in_(batch_ids)).all()
+                for b in batches:
+                    db.delete(b)
+            
+            # Flush to database so any IntegrityError (like items already sold) gets caught here
+            db.flush()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail="Cannot return invoice because items from this batch have already been sold, transferred, or adjusted.")
+
+    invoice_query.update({"status": payload.new_status}, synchronize_session=False)
     db.commit()
 
     return invoice_query.first()

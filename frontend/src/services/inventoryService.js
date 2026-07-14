@@ -31,6 +31,11 @@ export const inventoryService = {
     return response.data;
   },
 
+  getSuppliers: async (skip = 0, limit = 100) => {
+    const response = await api.get('/api/suppliers/', { params: { skip, limit } });
+    return response.data;
+  },
+
   getStockTransactions: async (skip = 0, limit = 100) => {
     const response = await api.get('/api/stock-transactions/', { params: { skip, limit } });
     return response.data;
@@ -43,6 +48,11 @@ export const inventoryService = {
 
   getPurchaseInvoices: async (skip = 0, limit = 100) => {
     const response = await api.get('/api/purchase-invoices/', { params: { skip, limit } });
+    return response.data;
+  },
+
+  updatePurchaseInvoiceStatus: async (invoiceId, status) => {
+    const response = await api.patch(`/api/purchase-invoices/${invoiceId}/status`, { new_status: status });
     return response.data;
   },
 

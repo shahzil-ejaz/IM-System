@@ -18,6 +18,11 @@ export function useInventory() {
     queryFn: () => inventoryService.getStockTransactions(0, 5000)
   });
 
+  const { data: suppliers = [], isLoading: isLoadingSuppliers } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => inventoryService.getSuppliers(0, 500)
+  });
+
   // Calculate live balance per batch using the ledger transactions
   const batches = rawBatches.map(batch => {
     const batchTransactions = transactions.filter(t => t.batch_id === batch.id);
@@ -25,7 +30,7 @@ export function useInventory() {
     return { ...batch, quantity };
   });
 
-  return { products, batches, isLoadingProducts, isLoadingBatches };
+  return { products, batches, suppliers, isLoadingProducts, isLoadingBatches, isLoadingSuppliers };
 }
 
 export function useCreateProduct() {

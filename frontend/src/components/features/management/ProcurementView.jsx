@@ -10,7 +10,7 @@ import apiClient from '../../../services/apiClient';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function ProcurementView() {
-  const { products, isLoadingProducts } = useInventory();
+  const { products, suppliers = [], isLoadingProducts } = useInventory();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
@@ -141,13 +141,17 @@ export function ProcurementView() {
           </CardHeader>
           <CardContent className="p-6 grid grid-cols-3 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-secondary uppercase">Supplier ID</label>
-              <Input 
-                type="number" 
-                placeholder="Enter Supplier ID" 
+              <label className="text-xs font-semibold text-text-secondary uppercase">Supplier</label>
+              <select 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={supplierId}
                 onChange={e => setSupplierId(e.target.value)}
-              />
+              >
+                <option value="">Select Supplier</option>
+                {suppliers.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold text-text-secondary uppercase">Invoice Number</label>

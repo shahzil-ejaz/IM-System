@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -118,9 +118,23 @@ function LedgerTab() {
 // ─── PURCHASE INVOICES TAB ───────────────────────────────────────────────────
 function PurchaseInvoicesTab() {
   const [search, setSearch] = useState('');
+  const queryClient = useQueryClient();
   const { data: invoices = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ['audit-purchases'],
     queryFn: () => inventoryService.getPurchaseInvoices(0, 500),
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => inventoryService.updatePurchaseInvoiceStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['audit-purchases'] });
+      // also invalidate batches and transactions since returning an invoice deletes batches
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-transactions'] });
+    },
+    onError: (err) => {
+      alert(err.response?.data?.detail || 'Failed to update status');
+    }
   });
 
   const filtered = invoices.filter(inv =>
@@ -165,7 +179,28 @@ function PurchaseInvoicesTab() {
                   <td className="px-4 py-3 font-mono text-xs text-text-secondary">#{inv.id}</td>
                   <td className="px-4 py-3 font-mono text-xs font-semibold">{inv.invoice_number}</td>
                   <td className="px-4 py-3 font-mono text-xs">{inv.supplier_id}</td>
-                  <td className="px-4 py-3"><Badge map={STATUS_BADGE} value={inv.status} /></td>
+                  <td className="px-4 py-3">
+                    {inv.status === 'returned' ? (
+                      <Badge map={STATUS_BADGE} value={inv.status} />
+                    ) : (
+                      <select
+                        className="text-xs font-medium px-2 py-1 rounded border border-border bg-surface text-text-primary"
+                        value={inv.status}
+                        onChange={(e) => {
+                          if (e.target.value === 'returned' && !window.confirm('Are you sure you want to return this invoice? This will delete the associated batches and stock transactions and cannot be undone.')) {
+                            e.target.value = inv.status;
+                            return;
+                          }
+                          updateStatusMutation.mutate({ id: inv.id, status: e.target.value });
+                        }}
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                        <option value="returned">Returned</option>
+                      </select>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right font-mono font-semibold text-text-primary">{formatCurrency(inv.total_amount)}</td>
                   <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">{formatDate(inv.created_at)}</td>
                 </motion.tr>
