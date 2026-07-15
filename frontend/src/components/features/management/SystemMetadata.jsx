@@ -7,12 +7,13 @@ import { metadataService } from '../../../services/metadataService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePopup } from '../../../contexts/PopupContext';
 
 function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
   const queryClient = useQueryClient();
+  const { showPopup } = usePopup();
   const [newValue, setNewValue] = useState('');
   const [newSecondary, setNewSecondary] = useState('');
-  const [feedback, setFeedback] = useState(null);
   
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['metadata', type],
@@ -27,11 +28,12 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
       queryClient.invalidateQueries({ queryKey: ['metadata', type] });
       setNewValue('');
       setNewSecondary('');
-      setFeedback({ type: 'success', message: 'Item added successfully.' });
+      showPopup({ type: 'success', message: 'Item added successfully.', title: 'Success' });
     },
     onError: (error) => {
-      setFeedback({
+      showPopup({
         type: 'error',
+        title: 'Error',
         message: error?.response?.data?.detail || 'Unable to add this item right now.'
       });
     }
@@ -41,11 +43,12 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
     mutationFn: deleteFn,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['metadata', type] });
-      setFeedback({ type: 'success', message: 'Item removed successfully.' });
+      showPopup({ type: 'success', message: 'Item removed successfully.', title: 'Success' });
     },
     onError: (error) => {
-      setFeedback({
+      showPopup({
         type: 'error',
+        title: 'Error',
         message: error?.response?.data?.detail || 'Unable to remove this item right now.'
       });
     }
@@ -54,7 +57,6 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
   const handleCreate = (e) => {
     e.preventDefault();
     if (!newValue.trim()) return;
-    setFeedback(null);
     
     if (type === 'units') {
       if (!newSecondary.trim()) return;
@@ -110,11 +112,7 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
         </Button>
       </form>
 
-      {feedback && (
-        <div className={`rounded-md border px-3 py-2 text-xs ${feedback.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
-          {feedback.message}
-        </div>
-      )}
+
 
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
         <table className="w-full min-w-125 text-sm text-left">

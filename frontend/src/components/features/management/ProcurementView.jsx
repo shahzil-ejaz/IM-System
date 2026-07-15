@@ -9,11 +9,13 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../services/apiClient';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePopup } from '../../../contexts/PopupContext';
 
 export function ProcurementView() {
   const { products, suppliers = [], isLoadingProducts } = useInventory();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { showPopup } = usePopup();
   
   const generateInvoiceNumber = () => `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
   
@@ -21,8 +23,6 @@ export function ProcurementView() {
   const [invoiceNumber, setInvoiceNumber] = useState(generateInvoiceNumber());
   const [warehouseId, setWarehouseId] = useState('1'); // Default warehouse
   const [items, setItems] = useState([]);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   const receiveStockMutation = useMutation({
     mutationFn: async (payload) => {
@@ -30,17 +30,15 @@ export function ProcurementView() {
       return response.data;
     },
     onSuccess: () => {
-      setIsSuccess(true);
-      setErrorMessage('');
       setSupplierId('');
       setInvoiceNumber(generateInvoiceNumber());
       setItems([]);
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      setTimeout(() => setIsSuccess(false), 3000);
+      showPopup({ title: 'Success', message: 'Invoice Received and Stock Updated', type: 'success' });
     },
     onError: (error) => {
       console.error('Invoice Commit Error:', error);
-      setErrorMessage(error.response?.data?.detail || 'Failed to commit invoice. Please check your data.');
+      showPopup({ title: 'Error', message: error.response?.data?.detail || 'Failed to commit invoice. Please check your data.', type: 'error' });
     }
   });
 
@@ -119,19 +117,6 @@ export function ProcurementView() {
           </div>
           
           <div className="flex items-center gap-3">
-            <AnimatePresence>
-              {errorMessage && (
-                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-red-500 text-xs font-medium">
-                  {errorMessage}
-                </motion.span>
-              )}
-              {isSuccess && (
-                <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-emerald-600 text-xs font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Invoice Received
-                </motion.span>
-              )}
-            </AnimatePresence>
             <Button 
               onClick={handleSubmit} 
               disabled={items.length === 0 || !supplierId || !invoiceNumber || receiveStockMutation.isPending}

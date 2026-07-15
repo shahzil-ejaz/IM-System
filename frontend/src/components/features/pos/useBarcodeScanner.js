@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
-export function useBarcodeScanner({ onScan, enabled = false, onClose }) {
+export function useBarcodeScanner({ onScan, enabled = false, onClose, elementId = 'pos-barcode-scanner' }) {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [lastScannedCode, setLastScannedCode] = useState('');
@@ -65,19 +65,19 @@ export function useBarcodeScanner({ onScan, enabled = false, onClose }) {
 
     const startCamera = async () => {
       try {
-        const scannerElement = document.getElementById('pos-barcode-scanner');
+        const scannerElement = document.getElementById(elementId);
         if (!scannerElement) {
           if (!cancelled) setTimeout(startCamera, 100);
           return;
         }
 
-        html5QrCode = new Html5Qrcode('pos-barcode-scanner');
+        html5QrCode = new Html5Qrcode(elementId);
         html5QrCodeRef.current = html5QrCode;
         isScanningRef.current = false;
         shouldStopRef.current = false;
 
         const config = {
-          fps: 10,
+          fps: 30,
           qrbox: { width: 320, height: 220 },
           formatsToSupport: [
             Html5QrcodeSupportedFormats.EAN_13,

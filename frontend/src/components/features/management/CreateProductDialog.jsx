@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { metadataService } from '../../../services/metadataService';
 import { useCreateProduct } from '../../../hooks/useInventory';
@@ -12,11 +12,26 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PackageSearch } from 'lucide-react';
+import { PackageSearch, ScanBarcode, X } from 'lucide-react';
+import { useBarcodeScanner } from '../pos/useBarcodeScanner';
+import { usePopup } from '../../../contexts/PopupContext';
 
 export function CreateProductDialog() {
   const [open, setOpen] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const createProduct = useCreateProduct();
+  const { showPopup } = usePopup();
+
+  useBarcodeScanner({
+    onScan: (code) => {
+      setFormData(prev => ({ ...prev, barcode: code }));
+      setIsScanning(false);
+      return true;
+    },
+    enabled: isScanning,
+    elementId: 'create-product-barcode-scanner',
+    onClose: () => setIsScanning(false),
+  });
   
   const [formData, setFormData] = useState({
     sku: '',
@@ -32,6 +47,15 @@ export function CreateProductDialog() {
   const { data: brands = [] } = useQuery({ queryKey: ['metadata', 'brands'], queryFn: metadataService.getBrands });
   const { data: categories = [] } = useQuery({ queryKey: ['metadata', 'categories'], queryFn: metadataService.getCategories });
   const { data: units = [] } = useQuery({ queryKey: ['metadata', 'units'], queryFn: metadataService.getUnits });
+
+  useEffect(() => {
+    if (open && !formData.sku) {
+      setFormData(prev => ({
+        ...prev,
+        sku: 'PRD-' + Math.floor(100000 + Math.random() * 900000)
+      }));
+    }
+  }, [open]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -65,9 +89,10 @@ export function CreateProductDialog() {
           tax_rate: 0,
           min_stock_alert: 10,
         });
+        showPopup({ title: 'Success', message: 'Product created successfully!', type: 'success' });
       },
       onError: (err) => {
-        alert(err.response?.data?.detail || 'Failed to create product');
+        showPopup({ title: 'Error', message: err.response?.data?.detail || 'Failed to create product', type: 'error' });
       }
     });
   };
@@ -89,9 +114,20 @@ export function CreateProductDialog() {
               <label className="text-sm font-medium">SKU *</label>
               <Input name="sku" value={formData.sku} onChange={handleChange} placeholder="e.g. PRD-001" required minLength={3} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <label className="text-sm font-medium">Barcode</label>
-              <Input name="barcode" value={formData.barcode} onChange={handleChange} placeholder="Optional" />
+              <div className="relative">
+                <Input name="barcode" value={formData.barcode} onChange={handleChange} placeholder="Optional" className="pr-10" />
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute right-0 top-0 h-full text-slate-500 hover:text-slate-800"
+                  onClick={() => setIsScanning(true)}
+                >
+                  <ScanBarcode className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
           
@@ -158,6 +194,25 @@ export function CreateProductDialog() {
             </Button>
           </DialogFooter>
         </form>
+        {isScanning && (
+          <div className="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center p-4 rounded-lg">
+            <div className="w-full max-w-sm relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute -top-10 right-0 text-slate-600 hover:text-black"
+                onClick={() => setIsScanning(false)}
+              >
+                <X className="w-6 h-6" />
+              </Button>
+              <div 
+                id="create-product-barcode-scanner" 
+                className="w-full overflow-hidden rounded-xl bg-black border border-slate-300 shadow-2xl [&_video]:[filter:contrast(175%)] [&_video]:scale-x-[-1]"
+              ></div>
+              <p className="text-center text-sm text-slate-600 font-medium mt-4">Point your camera at a barcode</p>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

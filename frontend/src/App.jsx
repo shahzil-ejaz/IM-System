@@ -9,10 +9,12 @@ import { CatalogView } from './components/features/management/CatalogView'
 import { UserControlCenter } from './components/features/management/UserControlCenter'
 import { SystemMetadata } from './components/features/management/SystemMetadata'
 import { GlobalAuditView } from './components/features/management/GlobalAuditView'
+import { PopupProvider } from './contexts/PopupContext'
 
 function App() {
   return (
-    <Router>
+    <PopupProvider>
+      <Router>
       <Routes>
         <Route path="/login" element={<LoginView />} />
         
@@ -60,6 +62,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
+    </PopupProvider>
   )
 }
 

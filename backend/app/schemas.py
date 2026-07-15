@@ -135,6 +135,11 @@ class StockTransactionEnriched(BaseModel):
     product_sku: Optional[str] = None
     warehouse_name: Optional[str] = None
     actor_username: Optional[str] = None
+    cost_price: Optional[float] = None
+    retail_price: Optional[float] = None
+    tax_rate: Optional[float] = None
+    category_name: Optional[str] = None
+    brand_name: Optional[str] = None
     # Raw IDs kept for reference
     batch_id: int
     warehouse_id: int

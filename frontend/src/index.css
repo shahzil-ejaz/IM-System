@@ -61,3 +61,24 @@
     scrollbar-width: none;
   }
 }
+
+@media print {
+  body {
+    background-color: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .no-print, [data-radix-portal] {
+    display: none !important;
+  }
+
+  @page {
+    margin: 0;
+  }
+}
+

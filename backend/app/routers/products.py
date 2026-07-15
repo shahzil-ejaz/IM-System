@@ -124,12 +124,28 @@ def delete_product(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_role(["admin"])),
 ):
-    product_query = db.query(models.Product).filter(models.Product.id == product_id)
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
 
-    if not product_query.first():
+    if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
-    product_query.delete(synchronize_session=False)
+    # Manually cascade delete related details
+    # 1. Get all batches for this product
+    batches = db.query(models.ProductBatch).filter(models.ProductBatch.product_id == product_id).all()
+    batch_ids = [b.id for b in batches]
+
+    if batch_ids:
+        # 2. Delete SalesItems linked to these batches
+        db.query(models.SalesItem).filter(models.SalesItem.batch_id.in_(batch_ids)).delete(synchronize_session=False)
+        
+        # 3. Delete StockTransactions linked to these batches
+        db.query(models.StockTransaction).filter(models.StockTransaction.batch_id.in_(batch_ids)).delete(synchronize_session=False)
+        
+        # 4. Delete the ProductBatches themselves
+        db.query(models.ProductBatch).filter(models.ProductBatch.product_id == product_id).delete(synchronize_session=False)
+
+    # 5. Delete the Product
+    db.query(models.Product).filter(models.Product.id == product_id).delete(synchronize_session=False)
     db.commit()
 
     return None

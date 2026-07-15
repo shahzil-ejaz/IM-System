@@ -26,7 +26,7 @@ export function CatalogView() {
           <p className="text-text-secondary text-xs mt-0.5">Manage product catalog and view active inventory batches.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="h-8 text-xs active:scale-[0.97] transition-transform duration-150 ease-out"><ArrowDownToLine className="w-3.5 h-3.5 mr-1.5" /> Export</Button>
+          {/* <Button variant="outline" className="h-8 text-xs active:scale-[0.97] transition-transform duration-150 ease-out"><ArrowDownToLine className="w-3.5 h-3.5 mr-1.5" /> Export</Button> */}
           <CreateProductDialog />
         </div>
       </div>
@@ -71,7 +71,7 @@ export function CatalogView() {
                   <tbody>
                     <AnimatePresence>
                       {products.map((p) => (
-                        <motion.tr 
+                        <motion.tr
                           key={p.id}
                           layout
                           initial={{ opacity: 0, scale: 0.98 }}
@@ -123,7 +123,7 @@ export function CatalogView() {
                       <tbody>
                         <AnimatePresence>
                           {activeBatches.map(b => (
-                            <motion.tr 
+                            <motion.tr
                               key={b.id}
                               layout
                               initial={{ opacity: 0, scale: 0.98 }}
@@ -151,66 +151,66 @@ export function CatalogView() {
 
                   {/* Sold Out Section */}
                   <div className="border-t border-border bg-slate-50/30">
-                    <button 
+                    <button
                       onClick={() => setShowSoldOut(!showSoldOut)}
                       className="w-full px-4 py-3 flex items-center justify-between text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-slate-50 transition-colors active:scale-[0.99]"
                     >
-                        <span className="flex items-center gap-2">
-                          <span className="font-medium">Sold Out Batches</span>
-                          <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-mono">{soldOutBatches.length}</span>
-                        </span>
-                        <motion.span
-                          animate={{ rotate: showSoldOut ? 180 : 0 }}
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium">Sold Out Batches</span>
+                        <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-mono">{soldOutBatches.length}</span>
+                      </span>
+                      <motion.span
+                        animate={{ rotate: showSoldOut ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-text-secondary"
+                      >
+                        ▼
+                      </motion.span>
+                    </button>
+                    <AnimatePresence>
+                      {showSoldOut && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.2 }}
-                          className="text-text-secondary"
+                          className="overflow-hidden"
                         >
-                          ▼
-                        </motion.span>
-                      </button>
-                      <AnimatePresence>
-                        {showSoldOut && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
                           <div className="overflow-x-auto no-scrollbar">
                             <table className="w-full min-w-[600px] text-sm text-left">
                               <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
-                              <tr>
-                                <th className="px-3 py-2">Batch #</th>
-                                <th className="px-3 py-2">Product</th>
-                                <th className="px-3 py-2 text-right">Qty</th>
-                                <th className="px-3 py-2 text-right">Retail (Rs)</th>
-                                <th className="px-3 py-2 text-right">Cost (Rs)</th>
-                                <th className="px-3 py-2">Expiry</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {soldOutBatches.map((b) => (
-                                <motion.tr
-                                  key={b.id}
-                                  initial={{ opacity: 0, scale: 0.98 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150 opacity-60"
-                                >
-                                  <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{b.batch_number}</td>
-                                  <td className="px-3 py-2 text-xs font-medium">{products.find(p => p.id === b.product_id)?.name || b.product_id}</td>
-                                  <td className="px-3 py-2 text-xs text-right font-mono text-red-500">0 / {b.max_quantity}</td>
-                                  <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.retail_price || 0).toFixed(2)}</td>
-                                  <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.cost_price || 0).toFixed(2)}</td>
-                                  <td className="px-3 py-2 text-xs text-text-secondary">{b.expiry_date || '—'}</td>
-                                </motion.tr>
-                              ))}
-                            </tbody>
+                                <tr>
+                                  <th className="px-3 py-2">Batch #</th>
+                                  <th className="px-3 py-2">Product</th>
+                                  <th className="px-3 py-2 text-right">Qty</th>
+                                  <th className="px-3 py-2 text-right">Retail (Rs)</th>
+                                  <th className="px-3 py-2 text-right">Cost (Rs)</th>
+                                  <th className="px-3 py-2">Expiry</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {soldOutBatches.map((b) => (
+                                  <motion.tr
+                                    key={b.id}
+                                    initial={{ opacity: 0, scale: 0.98 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150 opacity-60"
+                                  >
+                                    <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{b.batch_number}</td>
+                                    <td className="px-3 py-2 text-xs font-medium">{products.find(p => p.id === b.product_id)?.name || b.product_id}</td>
+                                    <td className="px-3 py-2 text-xs text-right font-mono text-red-500">0 / {b.max_quantity}</td>
+                                    <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.retail_price || 0).toFixed(2)}</td>
+                                    <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.cost_price || 0).toFixed(2)}</td>
+                                    <td className="px-3 py-2 text-xs text-text-secondary">{b.expiry_date || '—'}</td>
+                                  </motion.tr>
+                                ))}
+                              </tbody>
                             </table>
                           </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               );
             })()}

@@ -6,10 +6,12 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '../../../services/userService';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePopup } from '../../../contexts/PopupContext';
 
 export function UserControlCenter() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { showPopup } = usePopup();
   
   // Fetch real users from backend
   const { data: users = [], isLoading } = useQuery({
@@ -20,12 +22,18 @@ export function UserControlCenter() {
 
   const toggleMutation = useMutation({
     mutationFn: (id) => userService.toggleUserStatus(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      showPopup({ title: 'Success', message: 'User status updated.', type: 'success' });
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => userService.deleteUser(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      showPopup({ title: 'Success', message: 'User deleted successfully.', type: 'success' });
+    }
   });
   
   if (user?.role !== 'admin') {

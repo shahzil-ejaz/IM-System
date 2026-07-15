@@ -3,8 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { inventoryService } from '../../../services/inventoryService';
-import { Search, Package, Warehouse, User, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { Search, Package, Warehouse, User, FileText, FileSpreadsheet, ChevronDown, ChevronRight, Filter, X, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePopup } from '../../../contexts/PopupContext';
 
 const TYPE_CONFIG = {
   purchase: { label: 'Purchase', cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
@@ -184,7 +191,13 @@ function TransactionGroup({ groupKey, items, isOpen, onToggle }) {
 // ─── MAIN VIEW ────────────────────────────────────────────────────────────────
 export function StockLedgerView() {
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [exactDate, setExactDate] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [openGroups, setOpenGroups] = useState({});
+  const { showPopup } = usePopup();
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['stock-transactions-enriched'],
@@ -207,11 +220,39 @@ export function StockLedgerView() {
     return Array.from(map.entries()); // [[key, [tx,...]], ...]
   }, [transactions]);
 
-  // Filter groups: keep group if ANY item matches search
+  // Filter groups
   const q = search.toLowerCase();
-  const filteredGroups = q
-    ? groups.filter(([, items]) =>
-      items.some(tx =>
+  const filteredGroups = groups.filter(([, items]) => {
+    const first = items[0];
+
+    if (typeFilter !== 'all' && String(first.transaction_type).toLowerCase() !== typeFilter) {
+      return false;
+    }
+
+    const tDateStr = first.created_at ? (first.created_at.endsWith('Z') ? first.created_at : `${first.created_at}Z`) : null;
+    const tDate = tDateStr ? new Date(tDateStr) : new Date(0);
+
+    if (exactDate) {
+      const [y, m, d] = exactDate.split('-');
+      const start = new Date(y, m - 1, d, 0, 0, 0);
+      const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+      if (tDate < start || tDate > end) return false;
+    } else {
+      if (startDate) {
+        const [y, m, d] = startDate.split('-');
+        const start = new Date(y, m - 1, d, 0, 0, 0);
+        if (tDate < start) return false;
+      }
+
+      if (endDate) {
+        const [y, m, d] = endDate.split('-');
+        const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+        if (tDate > end) return false;
+      }
+    }
+
+    if (q) {
+      return items.some(tx =>
         (tx.product_name || '').toLowerCase().includes(q) ||
         (tx.product_sku || '').toLowerCase().includes(q) ||
         (tx.batch_number || '').toLowerCase().includes(q) ||
@@ -219,9 +260,67 @@ export function StockLedgerView() {
         (tx.reference_id || '').toLowerCase().includes(q) ||
         (tx.actor_username || '').toLowerCase().includes(q) ||
         (tx.warehouse_name || '').toLowerCase().includes(q)
-      )
-    )
-    : groups;
+      );
+    }
+
+    return true;
+  });
+
+  const flattenedData = useMemo(() => {
+    return filteredGroups.flatMap(([, items]) => items).map(tx => ({
+      ID: tx.id,
+      Date: formatDate(tx.created_at),
+      Type: TYPE_CONFIG[tx.transaction_type]?.label || tx.transaction_type,
+      Reference: tx.reference_id || '-',
+      Product: tx.product_name || '-',
+      SKU: tx.product_sku || '-',
+      Category: tx.category_name || '-',
+      Brand: tx.brand_name || '-',
+      Batch: tx.batch_number || '-',
+      'Cost Price': tx.cost_price != null ? `Rs ${tx.cost_price.toFixed(2)}` : '-',
+      'Retail Price': tx.retail_price != null ? `Rs ${tx.retail_price.toFixed(2)}` : '-',
+      'Tax Rate': tx.tax_rate != null ? `${tx.tax_rate}%` : '-',
+      Quantity: tx.quantity,
+      Warehouse: tx.warehouse_name || '-',
+      User: tx.actor_username || '-',
+      Notes: tx.notes || '-',
+    }));
+  }, [filteredGroups]);
+
+  const handleExportExcel = () => {
+    if (flattenedData.length === 0) {
+      showPopup({ title: 'Export Failed', message: 'No data to export!', type: 'error' });
+      return;
+    }
+    const ws = XLSX.utils.json_to_sheet(flattenedData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Stock Ledger");
+    XLSX.writeFile(wb, `Stock_Ledger_Export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const handleExportPDF = () => {
+    if (flattenedData.length === 0) {
+      showPopup({ title: 'Export Failed', message: 'No data to export!', type: 'error' });
+      return;
+    }
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.text("Stock Ledger Export", 14, 15);
+    doc.setFontSize(9);
+    doc.text(`Generated on: ${new Date().toLocaleString()} | Filtered items: ${flattenedData.length}`, 14, 22);
+
+    const columns = Object.keys(flattenedData[0]);
+    const rows = flattenedData.map(obj => columns.map(key => obj[key]));
+
+    autoTable(doc, {
+      head: [columns],
+      body: rows,
+      startY: 25,
+      styles: { fontSize: 6, cellPadding: 1 },
+      headStyles: { fillColor: [51, 65, 85] }
+    });
+
+    doc.save(`Stock_Ledger_Export_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
 
   const toggleGroup = (key) =>
     setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
@@ -240,14 +339,113 @@ export function StockLedgerView() {
       </div>
 
       {/* Filter */}
-      <div className="relative max-w-xs">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
-        <Input
-          placeholder="Search product, batch, reference, user…"
-          className="pl-8 bg-surface h-8 text-xs"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      <div className="flex justify-between items-center relative w-full">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
+          <Input
+            placeholder="Search product, batch, reference, user…"
+            className="pl-8 bg-surface h-10 text-sm"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-10 gap-2">
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem onClick={handleExportExcel} className="gap-2 cursor-pointer">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                <span>Excel</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF} className="gap-2 cursor-pointer">
+                <FileText className="w-4 h-4 text-rose-600" />
+                <span>PDF</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`gap-2 h-10 ${showFilters || typeFilter !== 'all' || exactDate || startDate || endDate ? 'bg-slate-100 border-slate-300 text-slate-800 font-semibold' : 'text-slate-600'}`}
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+            {(typeFilter !== 'all' || exactDate || startDate || endDate) && (
+              <span className="bg-emerald-500 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center font-bold">!</span>
+            )}
+          </Button>
+        </div>
+
+        {showFilters && (
+          <div className="absolute top-12 right-0 w-[300px] bg-white border border-border shadow-xl rounded-xl p-4 z-50">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-slate-800">Filter Transactions</h3>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowFilters(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Transaction Type</label>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-full bg-surface h-9 border-border text-xs font-medium">
+                    <SelectValue placeholder="All Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="purchase">Purchase</SelectItem>
+                    <SelectItem value="sale">Sale</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t border-border mt-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Search Specific Date</label>
+                <Input type="date" className="w-full bg-surface h-9 text-xs font-medium" value={exactDate} onChange={e => { setExactDate(e.target.value); setStartDate(''); setEndDate(''); }} />
+              </div>
+
+              <div className="text-[10px] text-center text-slate-400 font-bold uppercase my-1">- OR RANGE -</div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">From Date</label>
+                  <Input type="date" className="w-full bg-surface h-9 text-xs font-medium" value={startDate} onChange={e => { setStartDate(e.target.value); setExactDate(''); }} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">To Date</label>
+                  <Input type="date" className="w-full bg-surface h-9 text-xs font-medium" value={endDate} onChange={e => { setEndDate(e.target.value); setExactDate(''); }} />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-border flex justify-between items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-8 text-slate-500 hover:text-slate-800"
+                onClick={() => {
+                  setTypeFilter('all');
+                  setExactDate('');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+              >
+                Reset All
+              </Button>
+              <Button size="sm" className="h-8 text-xs bg-slate-900 text-white" onClick={() => setShowFilters(false)}>
+                Apply
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Table */}

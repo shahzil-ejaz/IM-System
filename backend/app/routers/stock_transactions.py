@@ -92,6 +92,8 @@ def get_all_transactions_enriched(
         product = db.query(models.Product).filter(models.Product.id == batch.product_id).first() if batch else None
         warehouse = db.query(models.Warehouse).filter(models.Warehouse.id == tx.warehouse_id).first()
         user = db.query(models.User).filter(models.User.id == tx.user_id).first()
+        category = db.query(models.Category).filter(models.Category.id == product.category_id).first() if product and product.category_id else None
+        brand = db.query(models.Brand).filter(models.Brand.id == product.brand_id).first() if product and product.brand_id else None
 
         results.append(schemas.StockTransactionEnriched(
             id=tx.id,
@@ -105,6 +107,11 @@ def get_all_transactions_enriched(
             product_sku=product.sku if product else None,
             warehouse_name=warehouse.name if warehouse else None,
             actor_username=user.username if user else None,
+            cost_price=float(batch.cost_price) if batch else None,
+            retail_price=float(batch.retail_price) if batch else None,
+            tax_rate=float(product.tax_rate) if product else None,
+            category_name=category.name if category else None,
+            brand_name=brand.name if brand else None,
             batch_id=tx.batch_id,
             warehouse_id=tx.warehouse_id,
             user_id=tx.user_id,

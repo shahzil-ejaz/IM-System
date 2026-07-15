@@ -6,8 +6,11 @@ import { useScanner } from '../../../hooks/useScanner';
 import { useInventory, useCheckout } from '../../../hooks/useInventory';
 import { POSCartRow } from './POSCartRow';
 import { useBarcodeScanner } from './useBarcodeScanner';
+import { usePopup } from '../../../contexts/PopupContext';
+import { ReprintDialog } from './ReprintDialog';
+import { ReceiptPrinter } from './ReceiptPrinter';
 import { Button } from '@/components/ui/button';
-import { Lock, Printer, Archive, MapPin, Store, QrCode, ShoppingCart, Banknote, CreditCard, SplitSquareHorizontal, CheckCircle, Camera, CameraOff } from 'lucide-react';
+import { Lock, Printer, Archive, MapPin, Store, QrCode, ShoppingCart, Banknote, CreditCard, SplitSquareHorizontal, CheckCircle, Camera, CameraOff, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const playScanBeep = () => {
@@ -36,11 +39,16 @@ export function POSLayout() {
   const [paymentMethod, setPaymentMethod] = useState('cash'); // NEW STATE
   const [amountPaid, setAmountPaid] = useState(''); // NEW STATE
   const [manualBarcode, setManualBarcode] = useState('');
+  const [activeRightPane, setActiveRightPane] = useState('checkout'); // 'checkout' | 'items'
+  const [itemsSearchQuery, setItemsSearchQuery] = useState('');
+  const [isReprintDialogOpen, setIsReprintDialogOpen] = useState(false);
+  const [invoiceToPrint, setInvoiceToPrint] = useState(null);
   const { user, logout } = useAuth();
   const { items, addItem, updateQuantity, removeItem, holdCart, recallCart, heldCart, clearCart, total, subtotal, tax } = useCartStore();
   const { products, batches, isLoadingProducts, isLoadingBatches } = useInventory();
   const checkoutMutation = useCheckout();
-  
+  const { showPopup } = usePopup();
+
   const lastScannedRef = useRef({ code: '', time: 0 });
 
   // Combine products and batches to create searchable active inventory cards
@@ -65,6 +73,28 @@ export function POSLayout() {
       });
   }, [products, batches]);
 
+  const allProductsWithInventory = useMemo(() => {
+    return products.map(product => {
+      const productBatches = batches.filter(b => b.product_id === product.id);
+      const totalBalance = productBatches.reduce((sum, b) => sum + b.quantity, 0);
+      const retailPrice = productBatches.length > 0 ? productBatches[0].retail_price : 0;
+      return {
+        ...product,
+        totalBalance,
+        retailPrice,
+      };
+    });
+  }, [products, batches]);
+
+  const filteredProducts = useMemo(() => {
+    if (!itemsSearchQuery.trim()) return allProductsWithInventory;
+    const q = itemsSearchQuery.toLowerCase();
+    return allProductsWithInventory.filter(p => 
+      p.name.toLowerCase().includes(q) || 
+      (p.sku && p.sku.toLowerCase().includes(q))
+    );
+  }, [allProductsWithInventory, itemsSearchQuery]);
+
   const handleBarcodeScan = useCallback((barcode) => {
     const normalizedBarcode = barcode?.toString().trim();
     if (!normalizedBarcode) return false;
@@ -79,10 +109,10 @@ export function POSLayout() {
     // Always populate the search input with the scanned barcode
     setManualBarcode(normalizedBarcode);
 
-    const matchedItem = batchInventory.find(p => 
-      p.sku === normalizedBarcode || 
-      p.barcode === normalizedBarcode || 
-      p.id.toString() === normalizedBarcode || 
+    const matchedItem = batchInventory.find(p =>
+      p.sku === normalizedBarcode ||
+      p.barcode === normalizedBarcode ||
+      p.id.toString() === normalizedBarcode ||
       p.batch_number === normalizedBarcode
     );
     if (matchedItem && matchedItem.current_balance > 0) {
@@ -91,9 +121,13 @@ export function POSLayout() {
       return true;
     }
 
-    alert(`Scanned: "${normalizedBarcode}"\nProduct not found or out of stock.`);
+    showPopup({
+      title: 'Not Found',
+      message: `Scanned: "${normalizedBarcode}"\nProduct not found or out of stock.`,
+      type: 'error'
+    });
     return false;
-  }, [addItem, batchInventory]);
+  }, [addItem, batchInventory, showPopup]);
 
   const [cameraEnabled, setCameraEnabled] = useState(false);
 
@@ -114,17 +148,20 @@ export function POSLayout() {
     e.preventDefault();
     if (!manualBarcode.trim()) return;
 
-    const matchedItem = batchInventory.find(p => 
-      p.sku === manualBarcode.trim() || 
-      p.barcode === manualBarcode.trim() || 
-      p.id.toString() === manualBarcode.trim() || 
+    const matchedItem = batchInventory.find(p =>
+      p.sku === manualBarcode.trim() ||
+      p.barcode === manualBarcode.trim() ||
+      p.id.toString() === manualBarcode.trim() ||
       p.batch_number === manualBarcode.trim()
     );
     if (matchedItem && matchedItem.current_balance > 0) {
       addItem(matchedItem);
       setManualBarcode('');
-    } else {
-      alert('Product not found or out of stock!');
+      showPopup({
+        title: 'Not Found',
+        message: 'Product not found or out of stock!',
+        type: 'error'
+      });
     }
   };
 
@@ -185,7 +222,11 @@ export function POSLayout() {
     if (paymentMethod === 'cash') {
       const paid = Number(amountPaid);
       if (isNaN(paid) || paid < total) {
-        alert(`Insufficient amount paid! Please enter at least Rs ${total.toFixed(2)}`);
+        showPopup({
+          title: 'Insufficient Amount',
+          message: `Insufficient amount paid! Please enter at least Rs ${total.toFixed(2)}`,
+          type: 'error'
+        });
         return;
       }
     }
@@ -201,21 +242,38 @@ export function POSLayout() {
 
       clearCart();
       setAmountPaid('');
-      alert(`Checkout successful!${paymentMethod === 'cash' ? `\nChange due: Rs ${(Number(amountPaid || total) - total).toFixed(2)}` : ''}`);
+      showPopup({
+        title: 'Checkout Successful',
+        message: `Checkout successful!${paymentMethod === 'cash' ? `\nChange due: Rs ${(Number(amountPaid || total) - total).toFixed(2)}` : ''}`,
+        type: 'success'
+      });
+      // Optionally auto-print here by fetching the new invoice, but for now we rely on the Reprint button
     } catch (error) {
       console.error("Checkout failed:", error);
-      alert('Checkout failed. Check network or stock balances.');
+      showPopup({
+        title: 'Checkout Failed',
+        message: 'Checkout failed. Check network or stock balances.',
+        type: 'error'
+      });
     }
   };
 
+  const handlePrint = useCallback((invoice) => {
+    setInvoiceToPrint(invoice);
+    // Give react time to render the receipt before calling print
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  }, []);
+
   return (
-    <div className="bg-canvas text-slate-900 min-h-dvh lg:h-dvh lg:overflow-hidden flex flex-col">
+    <div className="bg-canvas text-slate-900 min-h-dvh lg:h-dvh lg:overflow-hidden flex flex-col print:bg-white">
       {/* Stitch POS Header */}
-      <header className="h-14 lg:h-12 border-b border-border bg-surface/80 backdrop-blur-md px-3 lg:px-4 flex items-center justify-between sticky top-0 z-50 shrink-0">
+      <header className="h-14 lg:h-12 border-b border-border bg-surface/80 backdrop-blur-md px-3 lg:px-4 flex items-center justify-between sticky top-0 z-50 shrink-0 no-print">
         <div className="flex items-center gap-2 lg:gap-4">
           <div className="flex items-center gap-2">
 
-            <span className="font-bold text-sm tracking-tight hidden sm:inline-block">POS</span>
+            <span className="font-black text-2xl tracking-tighter hidden sm:inline-block text-slate-800">POS</span>
           </div>
           <div className="h-6 w-px bg-border hidden lg:block"></div>
           <div className="hidden lg:flex items-center gap-4 text-sm font-medium">
@@ -227,11 +285,27 @@ export function POSLayout() {
           </div>
         </div>
         <div className="flex items-center gap-2 lg:gap-3">
+          <button 
+            onClick={() => setActiveRightPane(prev => prev === 'checkout' ? 'items' : 'checkout')} 
+            className="flex items-center gap-2 px-3 lg:px-4 py-1.5 lg:py-2 hover:bg-slate-100 rounded-lg transition-colors border border-border"
+          >
+            {activeRightPane === 'checkout' ? (
+              <>
+                <Store className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-600" />
+                <span className="text-xs lg:text-sm font-semibold hidden sm:inline text-emerald-700">Available Items</span>
+              </>
+            ) : (
+              <>
+                <Banknote className="w-4 h-4 lg:w-5 lg:h-5" />
+                <span className="text-xs lg:text-sm font-semibold hidden sm:inline">View Checkout</span>
+              </>
+            )}
+          </button>
           <button onClick={() => heldCart ? recallCart() : holdCart()} className="flex items-center gap-2 px-3 lg:px-4 py-1.5 lg:py-2 hover:bg-slate-100 rounded-lg transition-colors border border-border">
             <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
             <span className="text-xs lg:text-sm font-semibold hidden sm:inline">{heldCart ? 'Recall Cart' : 'Hold Cart'}</span>
           </button>
-          <button className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors border border-border">
+          <button onClick={() => setIsReprintDialogOpen(true)} className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors border border-border">
             <Printer className="w-5 h-5" />
             <span className="text-sm font-semibold">Reprint</span>
           </button>
@@ -242,10 +316,10 @@ export function POSLayout() {
       </header>
 
       {/* Main Dual-View Workspace */}
-      <main className="flex flex-col lg:flex-row flex-1 p-2 lg:p-3 gap-3 min-h-0">
+      <main className="flex flex-col lg:flex-row flex-1 p-2 lg:p-3 gap-3 min-h-0 no-print">
         {/* Left Side: Cart & Search */}
         <section className="flex-2 flex flex-col gap-3 lg:overflow-hidden">
-          <div className="bg-surface rounded-xl p-3 shadow-sm border border-border">
+          <div className="bg-surface rounded-xl p-3 shadow-sm border border-border relative z-20">
             <form onSubmit={handleManualSearch} className="relative group">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <QrCode className="w-5 h-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
@@ -274,10 +348,7 @@ export function POSLayout() {
                 </button>
               </div>
             </form>
-            <div className={`mt-3 overflow-hidden rounded-lg border border-border bg-slate-950 p-2 ${cameraEnabled ? 'block' : 'hidden'}`}>
-              <div id="pos-barcode-scanner" className="aspect-4/3 w-full rounded-md bg-black overflow-hidden" />
-              <p className="mt-2 text-[11px] text-slate-300">Point your camera at a barcode and it will be added to the cart automatically.</p>
-            </div>
+
             {cameraError && <p className="mt-2 text-[11px] font-medium text-amber-600">{cameraError}</p>}
             {scanSuccess && !cameraError && (
               <p className="mt-2 text-[11px] font-medium text-emerald-600">{scanSuccess}</p>
@@ -285,6 +356,11 @@ export function POSLayout() {
             {lastScannedCode && !cameraError && !scanSuccess && (
               <p className="mt-2 text-[11px] font-medium text-emerald-600">Last scan: {lastScannedCode}</p>
             )}
+
+            <div className={`absolute left-0 top-[calc(100%+0.5rem)] z-50 w-full sm:w-[400px] overflow-hidden rounded-lg border border-slate-800 bg-slate-950 p-2 shadow-2xl ${cameraEnabled ? 'block' : 'hidden'}`}>
+              <div id="pos-barcode-scanner" className="aspect-video w-full rounded-md bg-black overflow-hidden [&>video]:object-cover [&_video]:[filter:contrast(175%)] [&_video]:scale-x-[-1]" />
+              <p className="mt-2 text-[11px] text-slate-300">Point your camera at a barcode and it will be added to the cart automatically.</p>
+            </div>
           </div>
 
           <div className="flex-1 bg-surface rounded-xl border border-border overflow-hidden flex flex-col shadow-sm">
@@ -325,7 +401,7 @@ export function POSLayout() {
               )}
             </div>
 
-            <div className="px-3 py-2 bg-slate-50 border-t border-border flex items-center justify-between shrink-0">
+            {/* <div className="px-3 py-2 bg-slate-50 border-t border-border flex items-center justify-between shrink-0">
               <div className="flex gap-6">
                 <div>
                   <span className="block text-[9px] font-bold text-slate-400 uppercase">Subtotal</span>
@@ -340,110 +416,195 @@ export function POSLayout() {
                 <span className="block text-[9px] font-bold text-slate-400 uppercase">Total Payable</span>
                 <span className="font-mono text-xl font-bold text-slate-900">Rs {total.toFixed(2)}</span>
               </div>
-            </div>
+            </div> */}
           </div>
         </section>
 
-        {/* Right Side: Checkout */}
-        <section className="flex-1 flex flex-col gap-3">
-          <div className="bg-surface rounded-xl p-4 shadow-xl border border-border flex flex-col flex-1">
-            <h2 className="text-base font-bold mb-3 flex items-center gap-1.5">
-              <Banknote className="w-4 h-4" />
-              Checkout
-            </h2>
-            <div className="space-y-1.5 mb-4">
-              <div className="flex justify-between text-xs text-text-secondary">
-                <span>Subtotal</span>
-                <span className="font-mono font-medium">Rs {subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-xs text-text-secondary">
-                <span>Tax</span>
-                <span className="font-mono font-medium">Rs {tax.toFixed(2)}</span>
-              </div>
-              <div className="pt-1.5 border-t border-border flex justify-between items-end">
-                <span className="font-bold text-sm">TOTAL</span>
-                <span className="font-mono text-2xl font-extrabold text-slate-900">Rs {total.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="space-y-3 flex-1">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Payment Method</span>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  className={cn(
-                    "relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-lg border-2 transition-all duration-150 ease-out group active:scale-[0.98]",
-                    paymentMethod === 'cash'
-                      ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-200"
-                      : "border-border bg-slate-50 hover:border-slate-300 text-slate-600"
-                  )}
-                  onClick={() => setPaymentMethod('cash')}
+        {/* Right Side: Toggleable Pane */}
+        <section className="flex-1 flex flex-col gap-3 relative overflow-hidden">
+          <div className="bg-surface rounded-xl shadow-xl border border-border flex flex-col flex-1 h-full w-full">
+            <AnimatePresence mode="wait">
+              {activeRightPane === 'checkout' ? (
+                <motion.div 
+                  key="checkout-pane"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className="flex flex-col h-full p-4"
                 >
-                  <Banknote className={cn("w-5 h-5", paymentMethod === 'cash' ? "text-white" : "text-slate-400 group-hover:text-slate-900 transition-colors")} />
-                  <span className="font-bold text-xs">Cash</span>
-                </button>
+                  <h2 className="text-base font-bold mb-3 flex items-center gap-1.5">
+                    <Banknote className="w-4 h-4" />
+                    Checkout
+                  </h2>
+                  <div className="space-y-1.5 mb-4">
+                    <div className="flex justify-between text-xs text-text-secondary">
+                      <span>Subtotal</span>
+                      <span className="font-mono font-medium">Rs {subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-text-secondary">
+                      <span>Tax</span>
+                      <span className="font-mono font-medium">Rs {tax.toFixed(2)}</span>
+                    </div>
+                    <div className="pt-1.5 border-t border-border flex justify-between items-end">
+                      <span className="font-bold text-sm">TOTAL</span>
+                      <span className="font-mono text-2xl font-extrabold text-slate-900">Rs {total.toFixed(2)}</span>
+                    </div>
+                  </div>
 
-                <button
-                  className={cn(
-                    "relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-lg border-2 transition-all duration-150 ease-out group active:scale-[0.98]",
-                    paymentMethod === 'card'
-                      ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-200"
-                      : "border-border bg-slate-50 hover:border-slate-300 text-slate-600"
-                  )}
-                  onClick={() => setPaymentMethod('card')}
-                >
-                  <CreditCard className={cn("w-5 h-5", paymentMethod === 'card' ? "text-white" : "text-slate-400 group-hover:text-slate-900 transition-colors")} />
-                  <span className="font-bold text-xs">Card</span>
-                </button>
-              </div>
-              <button
-                className={cn(
-                  "w-full flex items-center justify-center p-2 rounded-lg border-2 transition-all duration-150 ease-out group active:scale-[0.98]",
-                  paymentMethod === 'split'
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-border bg-surface hover:bg-slate-50 text-slate-700"
-                )}
-                onClick={() => setPaymentMethod('split')}
-              >
-                <div className="flex items-center gap-2">
-                  <SplitSquareHorizontal className={cn("w-3.5 h-3.5", paymentMethod === 'split' ? "text-white" : "text-slate-400 group-hover:text-slate-900")} />
-                  <span className="font-semibold text-xs">Split Payment</span>
-                </div>
-              </button>
+                  <div className="space-y-3 flex-1 overflow-y-auto no-scrollbar">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Payment Method</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        className={cn(
+                          "relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-lg border-2 transition-all duration-150 ease-out group active:scale-[0.98]",
+                          paymentMethod === 'cash'
+                            ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-200"
+                            : "border-border bg-slate-50 hover:border-slate-300 text-slate-600"
+                        )}
+                        onClick={() => setPaymentMethod('cash')}
+                      >
+                        <Banknote className={cn("w-5 h-5", paymentMethod === 'cash' ? "text-white" : "text-slate-400 group-hover:text-slate-900 transition-colors")} />
+                        <span className="font-bold text-xs">Cash</span>
+                      </button>
 
-              {paymentMethod === 'cash' && (
-                <div className="mt-3 animate-in fade-in slide-in-from-top-4 duration-150 ease-out">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-[9px] font-bold text-slate-400 uppercase">Amount Tendered</label>
-                    {Number(amountPaid) > total && (
-                      <span className="text-[9px] font-bold text-emerald-600">Change: Rs {(Number(amountPaid) - total).toFixed(2)}</span>
+                      <button
+                        className={cn(
+                          "relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-lg border-2 transition-all duration-150 ease-out group active:scale-[0.98]",
+                          paymentMethod === 'card'
+                            ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-200"
+                            : "border-border bg-slate-50 hover:border-slate-300 text-slate-600"
+                        )}
+                        onClick={() => setPaymentMethod('card')}
+                      >
+                        <CreditCard className={cn("w-5 h-5", paymentMethod === 'card' ? "text-white" : "text-slate-400 group-hover:text-slate-900 transition-colors")} />
+                        <span className="font-bold text-xs">Card</span>
+                      </button>
+                    </div>
+                    <button
+                      className={cn(
+                        "w-full flex items-center justify-center p-2 rounded-lg border-2 transition-all duration-150 ease-out group active:scale-[0.98]",
+                        paymentMethod === 'split'
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-border bg-surface hover:bg-slate-50 text-slate-700"
+                      )}
+                      onClick={() => setPaymentMethod('split')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <SplitSquareHorizontal className={cn("w-3.5 h-3.5", paymentMethod === 'split' ? "text-white" : "text-slate-400 group-hover:text-slate-900")} />
+                        <span className="font-semibold text-xs">Split Payment</span>
+                      </div>
+                    </button>
+
+                    {paymentMethod === 'cash' && (
+                      <div className="mt-3 animate-in fade-in slide-in-from-top-4 duration-150 ease-out pb-2">
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="block text-[9px] font-bold text-slate-400 uppercase">Amount Tendered</label>
+                          {Number(amountPaid) > total && (
+                            <span className="text-[9px] font-bold text-emerald-600">Change: Rs {(Number(amountPaid) - total).toFixed(2)}</span>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400 text-sm">Rs</span>
+                          <input
+                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border-2 border-border rounded-lg font-mono text-lg font-bold focus:border-slate-900 focus:ring-2 focus:ring-slate-100 outline-none transition-all"
+                            placeholder="0.00"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={amountPaid}
+                            onChange={(e) => setAmountPaid(e.target.value)}
+                          />
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400 text-sm">Rs</span>
-                    <input
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border-2 border-border rounded-lg font-mono text-lg font-bold focus:border-slate-900 focus:ring-2 focus:ring-slate-100 outline-none transition-all"
-                      placeholder="0.00"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={amountPaid}
-                      onChange={(e) => setAmountPaid(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
 
-            <button
-              className="w-full mt-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] text-white rounded-lg font-bold text-base shadow-lg shadow-emerald-200 transition-all duration-150 ease-out flex items-center justify-center gap-2 disabled:opacity-50 disabled:active:scale-100 shrink-0"
-              onClick={handleCheckout}
-            >
-              <CheckCircle className="w-4 h-4" />
-              Process Checkout
-            </button>
+                  <button
+                    className="w-full mt-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] text-white rounded-lg font-bold text-base shadow-lg shadow-emerald-200 transition-all duration-150 ease-out flex items-center justify-center gap-2 disabled:opacity-50 disabled:active:scale-100 shrink-0"
+                    onClick={handleCheckout}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Process Checkout
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="items-pane"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className="flex flex-col h-full"
+                >
+                  <div className="p-4 border-b border-border bg-slate-50/50">
+                    <h2 className="text-base font-bold mb-3 flex items-center gap-1.5 text-emerald-700">
+                      <Store className="w-4 h-4" />
+                      Available Items
+                    </h2>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Search items by name or SKU..." 
+                        value={itemsSearchQuery}
+                        onChange={(e) => setItemsSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto no-scrollbar p-3">
+                    <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {filteredProducts.map(product => {
+                        const isOutOfStock = product.totalBalance <= 0;
+                        return (
+                          <div
+                            key={product.id}
+                            onClick={() => {
+                              if (!isOutOfStock) {
+                                handleIncrement(product.id);
+                                // Optional visual feedback here
+                              }
+                            }}
+                            className={cn(
+                              "p-3 border border-border rounded-lg flex flex-col gap-2 transition-all cursor-pointer",
+                              isOutOfStock ? "opacity-50 grayscale bg-slate-50 cursor-not-allowed" : "hover:border-emerald-500 hover:shadow-md bg-white active:scale-[0.96]"
+                            )}
+                          >
+                            <div className="flex-1">
+                              <h3 className="font-bold text-sm text-slate-900 line-clamp-2 leading-tight">{product.name}</h3>
+                              <p className="text-[10px] text-slate-500 font-mono mt-1">{product.sku}</p>
+                            </div>
+                            <div className="flex justify-between items-end mt-2 pt-2 border-t border-slate-100">
+                              <div className="text-xs font-semibold text-emerald-600">Rs {Number(product.retailPrice || 0).toFixed(2)}</div>
+                              <div className="text-[10px] font-medium text-slate-500">{product.totalBalance} in stock</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {filteredProducts.length === 0 && (
+                        <div className="col-span-full py-12 text-center text-slate-400 text-sm font-medium">
+                          No items match your search.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </section>
       </main>
+
+
+
+      {/* Modals & Hidden Print Container */}
+      <ReprintDialog 
+        open={isReprintDialogOpen} 
+        onOpenChange={setIsReprintDialogOpen} 
+        onPrint={handlePrint}
+      />
+      <ReceiptPrinter invoice={invoiceToPrint} />
     </div>
   );
 }

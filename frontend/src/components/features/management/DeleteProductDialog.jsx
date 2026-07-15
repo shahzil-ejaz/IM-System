@@ -11,18 +11,21 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
+import { usePopup } from '../../../contexts/PopupContext';
 
 export function DeleteProductDialog({ product }) {
   const [open, setOpen] = useState(false);
   const deleteProduct = useDeleteProduct();
+  const { showPopup } = usePopup();
 
   const handleDelete = () => {
     deleteProduct.mutate(product.id, {
       onSuccess: () => {
         setOpen(false);
+        showPopup({ title: 'Success', message: 'Product deleted successfully!', type: 'success' });
       },
       onError: (err) => {
-        alert(err.response?.data?.detail || 'Failed to delete product');
+        showPopup({ title: 'Error', message: err.response?.data?.detail || 'Failed to delete product', type: 'error' });
       }
     });
   };

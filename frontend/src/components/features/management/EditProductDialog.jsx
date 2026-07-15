@@ -13,10 +13,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pencil } from 'lucide-react';
+import { usePopup } from '../../../contexts/PopupContext';
 
 export function EditProductDialog({ product }) {
   const [open, setOpen] = useState(false);
   const updateProduct = useUpdateProduct();
+  const { showPopup } = usePopup();
   
   const [formData, setFormData] = useState({
     sku: '',
@@ -70,9 +72,10 @@ export function EditProductDialog({ product }) {
     updateProduct.mutate({ productId: product.id, payload }, {
       onSuccess: () => {
         setOpen(false);
+        showPopup({ title: 'Success', message: 'Product updated successfully!', type: 'success' });
       },
       onError: (err) => {
-        alert(err.response?.data?.detail || 'Failed to update product');
+        showPopup({ title: 'Error', message: err.response?.data?.detail || 'Failed to update product', type: 'error' });
       }
     });
   };

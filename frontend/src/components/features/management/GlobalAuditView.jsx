@@ -9,6 +9,7 @@ import api from '../../../services/apiClient';
 import { metadataService } from '../../../services/metadataService';
 import { Database, ShoppingCart, Truck, ArrowDownUp, Search, RefreshCw, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePopup } from '../../../contexts/PopupContext';
 
 const TYPE_BADGE = {
   purchase:      { label: 'Purchase',      cls: 'bg-blue-100 text-blue-700' },
@@ -60,6 +61,7 @@ function normalizeListResponse(data) {
 // ─── LEDGER TAB ─────────────────────────────────────────────────────────────
 function LedgerTab() {
   const [search, setSearch] = useState('');
+
   const { data: transactionsResponse, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['audit-transactions'],
     queryFn: async () => {
@@ -69,10 +71,11 @@ function LedgerTab() {
   });
 
   const transactions = Array.isArray(transactionsResponse) ? transactionsResponse : [];
+  
   const filtered = transactions.filter(t =>
     String(t.transaction_type || '').toLowerCase().includes(search.toLowerCase()) ||
     String(t.reference_id || '').toLowerCase().includes(search.toLowerCase()) ||
-    String(t.batch_id || '').includes(search) ||
+    String(t.batch_id || '').toLowerCase().includes(search.toLowerCase()) ||
     String(t.notes || '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -148,6 +151,8 @@ function PurchaseInvoicesTab() {
 
   const invoices = Array.isArray(invoicesResponse) ? invoicesResponse : [];
 
+  const { showPopup } = usePopup();
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }) => inventoryService.updatePurchaseInvoiceStatus(id, status),
     onSuccess: () => {
@@ -155,9 +160,10 @@ function PurchaseInvoicesTab() {
       // also invalidate batches and transactions since returning an invoice deletes batches
       queryClient.invalidateQueries({ queryKey: ['batches'] });
       queryClient.invalidateQueries({ queryKey: ['stock-transactions'] });
+      showPopup({ title: 'Success', message: 'Status updated successfully', type: 'success' });
     },
     onError: (err) => {
-      alert(err.response?.data?.detail || 'Failed to update status');
+      showPopup({ title: 'Error', message: err.response?.data?.detail || 'Failed to update status', type: 'error' });
     }
   });
 
