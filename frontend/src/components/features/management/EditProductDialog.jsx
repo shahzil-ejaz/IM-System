@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { metadataService } from '../../../services/metadataService';
-import { useCreateProduct } from '../../../hooks/useInventory';
+import { useUpdateProduct } from '../../../hooks/useInventory';
 import {
   Dialog,
   DialogContent,
@@ -12,11 +12,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PackageSearch } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 
-export function CreateProductDialog() {
+export function EditProductDialog({ product }) {
   const [open, setOpen] = useState(false);
-  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
   
   const [formData, setFormData] = useState({
     sku: '',
@@ -28,6 +28,21 @@ export function CreateProductDialog() {
     tax_rate: 0,
     min_stock_alert: 10,
   });
+
+  useEffect(() => {
+    if (product && open) {
+      setFormData({
+        sku: product.sku || '',
+        barcode: product.barcode || '',
+        name: product.name || '',
+        category_id: product.category_id || '',
+        brand_id: product.brand_id || '',
+        unit_id: product.unit_id || '',
+        tax_rate: product.tax_rate || 0,
+        min_stock_alert: product.min_stock_alert || 10,
+      });
+    }
+  }, [product, open]);
 
   const { data: brands = [] } = useQuery({ queryKey: ['metadata', 'brands'], queryFn: metadataService.getBrands });
   const { data: categories = [] } = useQuery({ queryKey: ['metadata', 'categories'], queryFn: metadataService.getCategories });
@@ -52,22 +67,12 @@ export function CreateProductDialog() {
       tax_rate: Number(formData.tax_rate),
     };
 
-    createProduct.mutate(payload, {
+    updateProduct.mutate({ productId: product.id, payload }, {
       onSuccess: () => {
         setOpen(false);
-        setFormData({
-          sku: '',
-          barcode: '',
-          name: '',
-          category_id: '',
-          brand_id: '',
-          unit_id: '',
-          tax_rate: 0,
-          min_stock_alert: 10,
-        });
       },
       onError: (err) => {
-        alert(err.response?.data?.detail || 'Failed to create product');
+        alert(err.response?.data?.detail || 'Failed to update product');
       }
     });
   };
@@ -77,11 +82,13 @@ export function CreateProductDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><PackageSearch className="w-4 h-4 mr-2" /> New Product</Button>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+          <Pencil className="h-4 w-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Product</DialogTitle>
+          <DialogTitle>Edit Product</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
@@ -153,8 +160,8 @@ export function CreateProductDialog() {
 
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={!isFormValid || createProduct.isPending}>
-              {createProduct.isPending ? 'Saving...' : 'Create Product'}
+            <Button type="submit" disabled={!isFormValid || updateProduct.isPending}>
+              {updateProduct.isPending ? 'Saving...' : 'Update Product'}
             </Button>
           </DialogFooter>
         </form>

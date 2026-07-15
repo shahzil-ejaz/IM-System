@@ -1,21 +1,47 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCartStore } from '../../../hooks/useCart';
 import { useAuth } from '../../../hooks/useAuth';
 import { useScanner } from '../../../hooks/useScanner';
 import { useInventory, useCheckout } from '../../../hooks/useInventory';
 import { POSCartRow } from './POSCartRow';
+import { useBarcodeScanner } from './useBarcodeScanner';
 import { Button } from '@/components/ui/button';
-import { Lock, Printer, Archive, MapPin, Store, QrCode, ShoppingCart, Banknote, CreditCard, SplitSquareHorizontal, CheckCircle } from 'lucide-react';
+import { Lock, Printer, Archive, MapPin, Store, QrCode, ShoppingCart, Banknote, CreditCard, SplitSquareHorizontal, CheckCircle, Camera, CameraOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const playScanBeep = () => {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const audioCtx = new AudioContextClass();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime); // 1000Hz tone
+    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime); // low volume
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.08); // 80ms beep
+  } catch (err) {
+    console.warn('Audio beep failed to play:', err);
+  }
+};
 
 export function POSLayout() {
   const [paymentMethod, setPaymentMethod] = useState('cash'); // NEW STATE
   const [amountPaid, setAmountPaid] = useState(''); // NEW STATE
+  const [manualBarcode, setManualBarcode] = useState('');
   const { user, logout } = useAuth();
   const { items, addItem, updateQuantity, removeItem, holdCart, recallCart, heldCart, clearCart, total, subtotal, tax } = useCartStore();
   const { products, batches, isLoadingProducts, isLoadingBatches } = useInventory();
   const checkoutMutation = useCheckout();
+  
+  const lastScannedRef = useRef({ code: '', time: 0 });
 
   // Combine products and batches to create searchable active inventory cards
   const batchInventory = useMemo(() => {
@@ -28,8 +54,10 @@ export function POSLayout() {
           batch_id: batch.id,
           product_id: product.id,
           sku: product.sku || 'N/A',
+          barcode: product.barcode || null,
           name: product.name || 'Unknown Product',
           retail_price: batch.retail_price || 0,
+          tax_rate: product.tax_rate || 0,
           current_balance: batch.quantity,
           max_quantity: batch.quantity,
           batch_number: batch.batch_number,
@@ -37,20 +65,61 @@ export function POSLayout() {
       });
   }, [products, batches]);
 
-  useScanner((barcode) => {
-    const matchedItem = batchInventory.find(p => p.sku === barcode || p.id.toString() === barcode || p.batch_number === barcode);
+  const handleBarcodeScan = useCallback((barcode) => {
+    const normalizedBarcode = barcode?.toString().trim();
+    if (!normalizedBarcode) return false;
+
+    const now = Date.now();
+    // 2 seconds global delay before ANY second item can be scanned to prevent rapid accidental scans
+    if (now - lastScannedRef.current.time < 2000) {
+      return false;
+    }
+    lastScannedRef.current = { code: normalizedBarcode, time: now };
+
+    // Always populate the search input with the scanned barcode
+    setManualBarcode(normalizedBarcode);
+
+    const matchedItem = batchInventory.find(p => 
+      p.sku === normalizedBarcode || 
+      p.barcode === normalizedBarcode || 
+      p.id.toString() === normalizedBarcode || 
+      p.batch_number === normalizedBarcode
+    );
     if (matchedItem && matchedItem.current_balance > 0) {
       addItem(matchedItem);
+      playScanBeep();
+      return true;
     }
+
+    alert(`Scanned: "${normalizedBarcode}"\nProduct not found or out of stock.`);
+    return false;
+  }, [addItem, batchInventory]);
+
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+
+  const {
+    isCameraActive,
+    cameraError,
+    lastScannedCode,
+    scanSuccess,
+  } = useBarcodeScanner({
+    onScan: handleBarcodeScan,
+    enabled: cameraEnabled,
+    onClose: () => setCameraEnabled(false),
   });
 
-  const [manualBarcode, setManualBarcode] = useState('');
+  useScanner(handleBarcodeScan);
 
   const handleManualSearch = (e) => {
     e.preventDefault();
     if (!manualBarcode.trim()) return;
 
-    const matchedItem = batchInventory.find(p => p.sku === manualBarcode.trim() || p.id.toString() === manualBarcode.trim() || p.batch_number === manualBarcode.trim());
+    const matchedItem = batchInventory.find(p => 
+      p.sku === manualBarcode.trim() || 
+      p.barcode === manualBarcode.trim() || 
+      p.id.toString() === manualBarcode.trim() || 
+      p.batch_number === manualBarcode.trim()
+    );
     if (matchedItem && matchedItem.current_balance > 0) {
       addItem(matchedItem);
       setManualBarcode('');
@@ -140,7 +209,7 @@ export function POSLayout() {
   };
 
   return (
-    <div className="bg-canvas text-slate-900 min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden flex flex-col">
+    <div className="bg-canvas text-slate-900 min-h-dvh lg:h-dvh lg:overflow-hidden flex flex-col">
       {/* Stitch POS Header */}
       <header className="h-14 lg:h-12 border-b border-border bg-surface/80 backdrop-blur-md px-3 lg:px-4 flex items-center justify-between sticky top-0 z-50 shrink-0">
         <div className="flex items-center gap-2 lg:gap-4">
@@ -175,7 +244,7 @@ export function POSLayout() {
       {/* Main Dual-View Workspace */}
       <main className="flex flex-col lg:flex-row flex-1 p-2 lg:p-3 gap-3 min-h-0">
         {/* Left Side: Cart & Search */}
-        <section className="flex-[2] flex flex-col gap-3 lg:overflow-hidden">
+        <section className="flex-2 flex flex-col gap-3 lg:overflow-hidden">
           <div className="bg-surface rounded-xl p-3 shadow-sm border border-border">
             <form onSubmit={handleManualSearch} className="relative group">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -183,19 +252,39 @@ export function POSLayout() {
               </div>
               <input
                 autoFocus
-                className="w-full h-10 pl-10 pr-24 bg-slate-50 border-2 border-border focus:border-slate-500 focus:ring-2 focus:ring-slate-100 rounded-lg text-sm font-medium transition-all outline-none"
+                className="w-full h-10 pl-10 pr-32 bg-slate-50 border-2 border-border focus:border-slate-500 focus:ring-2 focus:ring-slate-100 rounded-lg text-sm font-medium transition-all outline-none"
                 placeholder="Scan Barcode or Type SKU (Enter)"
                 type="text"
                 value={manualBarcode}
                 onChange={(e) => setManualBarcode(e.target.value)}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
-                <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 bg-surface border border-border rounded text-[10px] text-text-secondary font-mono">ENTER</kbd>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCameraEnabled(prev => !prev);
+                  }}
+                  className="flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  {isCameraActive ? <CameraOff className="w-3.5 h-3.5" /> : <Camera className="w-3.5 h-3.5" />}
+                  {isCameraActive ? 'STOP' : 'CAMERA'}
+                </button>
                 <button type="submit" className="bg-slate-700 text-white px-3 py-1 rounded-md font-bold hover:opacity-90 active:scale-[0.97] transition-transform duration-150 ease-out text-xs">
                   SEARCH
                 </button>
               </div>
             </form>
+            <div className={`mt-3 overflow-hidden rounded-lg border border-border bg-slate-950 p-2 ${cameraEnabled ? 'block' : 'hidden'}`}>
+              <div id="pos-barcode-scanner" className="aspect-4/3 w-full rounded-md bg-black overflow-hidden" />
+              <p className="mt-2 text-[11px] text-slate-300">Point your camera at a barcode and it will be added to the cart automatically.</p>
+            </div>
+            {cameraError && <p className="mt-2 text-[11px] font-medium text-amber-600">{cameraError}</p>}
+            {scanSuccess && !cameraError && (
+              <p className="mt-2 text-[11px] font-medium text-emerald-600">{scanSuccess}</p>
+            )}
+            {lastScannedCode && !cameraError && !scanSuccess && (
+              <p className="mt-2 text-[11px] font-medium text-emerald-600">Last scan: {lastScannedCode}</p>
+            )}
           </div>
 
           <div className="flex-1 bg-surface rounded-xl border border-border overflow-hidden flex flex-col shadow-sm">
@@ -204,7 +293,7 @@ export function POSLayout() {
               <span className="text-[10px] font-medium text-text-secondary">{items.length} Items in Cart</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar min-h-[300px] lg:min-h-0">
+            <div className="flex-1 overflow-y-auto no-scrollbar min-h-75 lg:min-h-0">
               {groupedCartItems.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6">
                   <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-4 border-2 border-surface shadow-inner">
@@ -243,7 +332,7 @@ export function POSLayout() {
                   <span className="font-mono text-sm font-semibold">Rs {subtotal.toFixed(2)}</span>
                 </div>
                 <div>
-                  <span className="block text-[9px] font-bold text-slate-400 uppercase">Tax (15%)</span>
+                  <span className="block text-[9px] font-bold text-slate-400 uppercase">Tax</span>
                   <span className="font-mono text-sm font-semibold">Rs {tax.toFixed(2)}</span>
                 </div>
               </div>
@@ -268,7 +357,7 @@ export function POSLayout() {
                 <span className="font-mono font-medium">Rs {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xs text-text-secondary">
-                <span>Tax (15%)</span>
+                <span>Tax</span>
                 <span className="font-mono font-medium">Rs {tax.toFixed(2)}</span>
               </div>
               <div className="pt-1.5 border-t border-border flex justify-between items-end">

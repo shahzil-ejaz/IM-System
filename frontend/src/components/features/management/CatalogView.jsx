@@ -5,11 +5,18 @@ import { useInventory } from '../../../hooks/useInventory';
 import { motion, AnimatePresence } from 'motion/react';
 import { PackageSearch, ArrowDownToLine, Archive } from 'lucide-react';
 import { CreateProductDialog } from './CreateProductDialog';
+import { EditProductDialog } from './EditProductDialog';
+import { DeleteProductDialog } from './DeleteProductDialog';
+import { useQuery } from '@tanstack/react-query';
+import { metadataService } from '../../../services/metadataService';
 
 export function CatalogView() {
   const { products, batches, isLoadingProducts, isLoadingBatches } = useInventory();
   const [activeTab, setActiveTab] = useState('products'); // 'products' or 'batches'
   const [showSoldOut, setShowSoldOut] = useState(false);
+
+  const { data: brands = [] } = useQuery({ queryKey: ['metadata', 'brands'], queryFn: metadataService.getBrands });
+  const { data: categories = [] } = useQuery({ queryKey: ['metadata', 'categories'], queryFn: metadataService.getCategories });
 
   return (
     <div className="space-y-6">
@@ -24,19 +31,19 @@ export function CatalogView() {
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <Card className="w-48 shrink-0 h-fit shadow-sm bg-surface/90 backdrop-blur-md">
-          <CardContent className="p-1.5 flex flex-col gap-0.5">
+      <div className="flex flex-col gap-4">
+        <Card className="w-full shrink-0 h-fit shadow-sm bg-surface/90 backdrop-blur-md">
+          <CardContent className="p-1.5 flex flex-row gap-0.5 overflow-x-auto no-scrollbar">
             <Button
               variant={activeTab === 'products' ? 'secondary' : 'ghost'}
-              className="justify-start w-full transition-transform duration-150 ease-out active:scale-[0.98] h-8 text-xs px-2"
+              className="justify-start whitespace-nowrap transition-transform duration-150 ease-out active:scale-[0.98] h-8 text-xs px-3"
               onClick={() => setActiveTab('products')}
             >
               <PackageSearch className="w-3.5 h-3.5 mr-2" /> Master Catalog
             </Button>
             <Button
               variant={activeTab === 'batches' ? 'secondary' : 'ghost'}
-              className="justify-start w-full transition-transform duration-150 ease-out active:scale-[0.98] h-8 text-xs px-2"
+              className="justify-start whitespace-nowrap transition-transform duration-150 ease-out active:scale-[0.98] h-8 text-xs px-3"
               onClick={() => setActiveTab('batches')}
             >
               <Archive className="w-3.5 h-3.5 mr-2" /> Active Batches
@@ -58,6 +65,7 @@ export function CatalogView() {
                       <th className="px-3 py-2">Name</th>
                       <th className="px-3 py-2">Brand</th>
                       <th className="px-3 py-2">Category</th>
+                      <th className="px-3 py-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -74,8 +82,14 @@ export function CatalogView() {
                         >
                           <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{p.sku}</td>
                           <td className="px-3 py-2 text-xs font-medium">{p.name}</td>
-                          <td className="px-3 py-2 text-xs">{p.brand_id}</td>
-                          <td className="px-3 py-2 text-xs">{p.category_id}</td>
+                          <td className="px-3 py-2 text-xs">{brands.find(b => b.id === p.brand_id)?.name || p.brand_id || '—'}</td>
+                          <td className="px-3 py-2 text-xs">{categories.find(c => c.id === p.category_id)?.name || p.category_id || '—'}</td>
+                          <td className="px-3 py-2 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <EditProductDialog product={p} />
+                              <DeleteProductDialog product={p} />
+                            </div>
+                          </td>
                         </motion.tr>
                       ))}
                     </AnimatePresence>
@@ -99,8 +113,10 @@ export function CatalogView() {
                       <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
                         <tr>
                           <th className="px-3 py-2">Batch #</th>
-                          <th className="px-3 py-2">Product ID</th>
-                          <th className="px-3 py-2 text-right">Quantity</th>
+                          <th className="px-3 py-2">Product</th>
+                          <th className="px-3 py-2 text-right">Qty</th>
+                          <th className="px-3 py-2 text-right">Retail (Rs)</th>
+                          <th className="px-3 py-2 text-right">Cost (Rs)</th>
                           <th className="px-3 py-2">Expiry</th>
                         </tr>
                       </thead>
@@ -108,7 +124,7 @@ export function CatalogView() {
                         <AnimatePresence>
                           {activeBatches.map(b => (
                             <motion.tr 
-                              key={b.batch_id}
+                              key={b.id}
                               layout
                               initial={{ opacity: 0, scale: 0.98 }}
                               animate={{ opacity: 1, scale: 1 }}
@@ -116,15 +132,17 @@ export function CatalogView() {
                               className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150"
                             >
                               <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{b.batch_number}</td>
-                              <td className="px-3 py-2 text-xs font-medium">{b.product_id}</td>
+                              <td className="px-3 py-2 text-xs font-medium">{products.find(p => p.id === b.product_id)?.name || b.product_id}</td>
                               <td className="px-3 py-2 text-xs text-right font-mono">{b.quantity} / {b.max_quantity}</td>
+                              <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.retail_price || 0).toFixed(2)}</td>
+                              <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.cost_price || 0).toFixed(2)}</td>
                               <td className="px-3 py-2 text-xs text-text-secondary">{b.expiry_date || '—'}</td>
                             </motion.tr>
                           ))}
                         </AnimatePresence>
                         {activeBatches.length === 0 && (
                           <tr>
-                            <td colSpan="4" className="px-3 py-6 text-center text-xs text-text-secondary">No active batches.</td>
+                            <td colSpan="6" className="px-3 py-6 text-center text-xs text-text-secondary">No active batches.</td>
                           </tr>
                         )}
                       </tbody>
@@ -163,10 +181,11 @@ export function CatalogView() {
                               <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
                               <tr>
                                 <th className="px-3 py-2">Batch #</th>
-                                <th className="px-3 py-2">Product ID</th>
+                                <th className="px-3 py-2">Product</th>
                                 <th className="px-3 py-2 text-right">Qty</th>
                                 <th className="px-3 py-2 text-right">Retail (Rs)</th>
                                 <th className="px-3 py-2 text-right">Cost (Rs)</th>
+                                <th className="px-3 py-2">Expiry</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -178,10 +197,11 @@ export function CatalogView() {
                                   className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150 opacity-60"
                                 >
                                   <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{b.batch_number}</td>
-                                  <td className="px-3 py-2 text-xs font-medium">{b.product_id}</td>
-                                  <td className="px-3 py-2 text-xs text-right font-mono text-red-500">0</td>
+                                  <td className="px-3 py-2 text-xs font-medium">{products.find(p => p.id === b.product_id)?.name || b.product_id}</td>
+                                  <td className="px-3 py-2 text-xs text-right font-mono text-red-500">0 / {b.max_quantity}</td>
                                   <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.retail_price || 0).toFixed(2)}</td>
                                   <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.cost_price || 0).toFixed(2)}</td>
+                                  <td className="px-3 py-2 text-xs text-text-secondary">{b.expiry_date || '—'}</td>
                                 </motion.tr>
                               ))}
                             </tbody>

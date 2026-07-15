@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { useInventory } from '../../../hooks/useInventory';
 import { useAuth } from '../../../hooks/useAuth';
@@ -14,8 +15,10 @@ export function ProcurementView() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
+  const generateInvoiceNumber = () => `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+  
   const [supplierId, setSupplierId] = useState('');
-  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState(generateInvoiceNumber());
   const [warehouseId, setWarehouseId] = useState('1'); // Default warehouse
   const [items, setItems] = useState([]);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -30,7 +33,7 @@ export function ProcurementView() {
       setIsSuccess(true);
       setErrorMessage('');
       setSupplierId('');
-      setInvoiceNumber('');
+      setInvoiceNumber(generateInvoiceNumber());
       setItems([]);
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       setTimeout(() => setIsSuccess(false), 3000);
@@ -101,7 +104,8 @@ export function ProcurementView() {
         </div>
       </div>
 
-      <div className="border border-border bg-white rounded-lg overflow-hidden">
+      <div className="border border-border bg-white rounded-lg overflow-hidden shadow-sm">
+        {/* Summary & Actions Header */}
         <div className="p-4 bg-slate-50 border-b border-border flex justify-between items-center">
           <div className="flex gap-6">
             <div>
@@ -138,19 +142,20 @@ export function ProcurementView() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-x divide-border">
+        {/* Invoice Metadata Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-border border-b border-border bg-white">
           <div className="p-4 space-y-2">
             <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Supplier</label>
-            <select 
-              className="w-full h-8 px-2 text-xs border border-border rounded-md bg-canvas focus:ring-2 focus:ring-slate-900 outline-none transition-all"
-              value={supplierId}
-              onChange={e => setSupplierId(e.target.value)}
-            >
-              <option value="">Select Supplier</option>
-              {suppliers.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+            <Select value={supplierId || undefined} onValueChange={setSupplierId}>
+              <SelectTrigger className="w-full h-8 px-2 text-xs border border-border rounded-md bg-canvas focus:ring-2 focus:ring-slate-900 outline-none transition-all text-slate-900 font-medium data-[placeholder]:text-slate-900">
+                <SelectValue placeholder="Select Supplier" />
+              </SelectTrigger>
+              <SelectContent>
+                {suppliers.map(s => (
+                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="p-4 space-y-2">
             <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Invoice Number</label>
@@ -163,23 +168,20 @@ export function ProcurementView() {
           </div>
           <div className="p-4 space-y-2">
             <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Warehouse</label>
-            <select 
-              className="w-full h-8 px-2 text-xs border border-border rounded-md bg-canvas outline-none"
-              value={warehouseId}
-              onChange={e => setWarehouseId(e.target.value)}
-              disabled
-            >
-              <option value="1">Primary Warehouse</option>
-            </select>
+            <Select value={warehouseId} disabled>
+              <SelectTrigger className="w-full h-8 px-2 text-xs border border-border rounded-md bg-canvas outline-none text-slate-900 font-medium disabled:opacity-100">
+                <SelectValue placeholder="Select Warehouse" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Primary Warehouse</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </div>
 
-      <Card className="shadow-sm border-border/60">
-        <CardHeader className="py-3 px-4 border-b border-border/50 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider">Incoming Items</CardTitle>
-          </div>
+        {/* Items Section Header */}
+        <div className="py-3 px-4 bg-slate-50 border-b border-border/50 flex flex-row items-center justify-between">
+          <span className="text-sm font-semibold uppercase tracking-wider text-text-primary">Incoming Items</span>
           <div className="flex gap-2">
             <Button 
               variant="outline" 
@@ -192,8 +194,10 @@ export function ProcurementView() {
               <Plus className="w-3.5 h-3.5 mr-1" /> Add Row
             </Button>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
+        </div>
+
+        {/* Items Section Table */}
+        <div className="bg-white">
           {items.length === 0 ? (
             <div className="p-8 text-center text-text-secondary text-xs">
               No items added yet. Click "Add Row" to begin.
@@ -250,8 +254,8 @@ export function ProcurementView() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

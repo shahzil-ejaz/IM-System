@@ -32,7 +32,10 @@ export function useInventory() {
   const batches = rawBatches.map(batch => {
     const batchTransactions = transactions.filter(t => t.batch_id === batch.id);
     const quantity = batchTransactions.reduce((sum, t) => sum + t.quantity, 0);
-    return { ...batch, quantity };
+    const max_quantity = batchTransactions
+      .filter(t => t.quantity > 0)
+      .reduce((sum, t) => sum + t.quantity, 0);
+    return { ...batch, quantity, max_quantity };
   });
 
   return { products, batches, suppliers, purchaseInvoices, isLoadingProducts, isLoadingBatches, isLoadingSuppliers, isLoadingInvoices };
@@ -45,6 +48,30 @@ export function useCreateProduct() {
     mutationFn: (payload) => inventoryService.createProduct(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+    }
+  });
+}
+
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ productId, payload }) => inventoryService.updateProduct(productId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    }
+  });
+}
+
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (productId) => inventoryService.deleteProduct(productId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     }
   });
 }

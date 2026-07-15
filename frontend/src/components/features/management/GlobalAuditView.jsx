@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { inventoryService } from '../../../services/inventoryService';
 import api from '../../../services/apiClient';
+import { metadataService } from '../../../services/metadataService';
 import { Database, ShoppingCart, Truck, ArrowDownUp, Search, RefreshCw, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -36,7 +38,8 @@ function Badge({ map, value }) {
 
 function formatDate(str) {
   if (!str) return '—';
-  return new Date(str).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  const dateStr = str.endsWith('Z') ? str : `${str}Z`;
+  return new Date(dateStr).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 function formatCurrency(val) {
@@ -44,18 +47,32 @@ function formatCurrency(val) {
   return `Rs ${Number(val).toFixed(2)}`;
 }
 
+function normalizeListResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray(data.data)) return data.data;
+    if (Array.isArray(data.results)) return data.results;
+  }
+  return [];
+}
+
 // ─── LEDGER TAB ─────────────────────────────────────────────────────────────
 function LedgerTab() {
   const [search, setSearch] = useState('');
-  const { data: transactions = [], isLoading, refetch, isFetching } = useQuery({
+  const { data: transactionsResponse, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['audit-transactions'],
-    queryFn: () => inventoryService.getStockTransactions(0, 500),
+    queryFn: async () => {
+      const response = await inventoryService.getStockTransactions(0, 500);
+      return normalizeListResponse(response);
+    },
   });
 
+  const transactions = Array.isArray(transactionsResponse) ? transactionsResponse : [];
   const filtered = transactions.filter(t =>
-    String(t.transaction_type).includes(search.toLowerCase()) ||
+    String(t.transaction_type || '').toLowerCase().includes(search.toLowerCase()) ||
     String(t.reference_id || '').toLowerCase().includes(search.toLowerCase()) ||
-    String(t.batch_id).includes(search) ||
+    String(t.batch_id || '').includes(search) ||
     String(t.notes || '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -72,7 +89,7 @@ function LedgerTab() {
         <span className="text-sm text-text-secondary">{filtered.length} entries</span>
       </div>
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
-        <table className="w-full min-w-[800px] text-sm text-left">
+        <table className="w-full min-w-200 text-sm text-left">
           <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
@@ -119,10 +136,17 @@ function LedgerTab() {
 function PurchaseInvoicesTab() {
   const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
-  const { data: invoices = [], isLoading, refetch, isFetching } = useQuery({
+  const { data: invoicesResponse, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['audit-purchases'],
-    queryFn: () => inventoryService.getPurchaseInvoices(0, 500),
+    queryFn: async () => {
+      const response = await inventoryService.getPurchaseInvoices(0, 500);
+      return normalizeListResponse(response);
+    },
   });
+
+  const { data: suppliers = [] } = useQuery({ queryKey: ['metadata', 'suppliers'], queryFn: metadataService.getSuppliers });
+
+  const invoices = Array.isArray(invoicesResponse) ? invoicesResponse : [];
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }) => inventoryService.updatePurchaseInvoiceStatus(id, status),
@@ -138,9 +162,9 @@ function PurchaseInvoicesTab() {
   });
 
   const filtered = invoices.filter(inv =>
-    inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
-    String(inv.supplier_id).includes(search)
-  );
+    String(inv.invoice_number || '').toLowerCase().includes(search.toLowerCase()) ||
+    String(inv.supplier_id || '').includes(search)
+  ).sort((a, b) => b.id - a.id);
 
   return (
     <div className="space-y-4">
@@ -155,12 +179,12 @@ function PurchaseInvoicesTab() {
         <span className="text-sm text-text-secondary">{filtered.length} invoices</span>
       </div>
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
-        <table className="w-full min-w-[800px] text-sm text-left">
+        <table className="w-full min-w-200 text-sm text-left">
           <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">Invoice #</th>
-              <th className="px-3 py-2">Supplier ID</th>
+              <th className="px-3 py-2">Supplier</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2 text-right">Total</th>
               <th className="px-3 py-2">Created At</th>
@@ -178,27 +202,30 @@ function PurchaseInvoicesTab() {
                 <motion.tr key={inv.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150">
                   <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{inv.id}</td>
                   <td className="px-3 py-2 font-mono text-xs font-semibold">{inv.invoice_number}</td>
-                  <td className="px-3 py-2 font-mono text-[11px]">{inv.supplier_id}</td>
+                  <td className="px-3 py-2 text-xs font-medium">{suppliers.find(s => s.id === inv.supplier_id)?.name || inv.supplier_id}</td>
                   <td className="px-3 py-2">
                     {inv.status === 'returned' ? (
                       <Badge map={STATUS_BADGE} value={inv.status} />
                     ) : (
-                      <select
-                        className="text-xs font-medium px-2 py-1 rounded border border-border bg-surface text-text-primary outline-none transition-all focus:ring-2 focus:ring-slate-900"
+                      <Select
                         value={inv.status}
-                        onChange={(e) => {
-                          if (e.target.value === 'returned' && !window.confirm('Are you sure you want to return this invoice? This will delete the associated batches and stock transactions and cannot be undone.')) {
-                            e.target.value = inv.status;
+                        onValueChange={(val) => {
+                          if (val === 'returned' && !window.confirm('Are you sure you want to return this invoice? This will delete the associated batches and stock transactions and cannot be undone.')) {
                             return;
                           }
-                          updateStatusMutation.mutate({ id: inv.id, status: e.target.value });
+                          updateStatusMutation.mutate({ id: inv.id, status: val });
                         }}
                         disabled={updateStatusMutation.isPending}
                       >
-                        <option value="pending">Pending</option>
-                        <option value="paid">Paid</option>
-                        <option value="returned">Returned</option>
-                      </select>
+                        <SelectTrigger className="h-7 text-[11px] font-bold px-2 py-1 bg-surface focus:ring-2 focus:ring-slate-900 border-border text-slate-900">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="paid">Paid</SelectItem>
+                          <SelectItem value="returned">Returned</SelectItem>
+                        </SelectContent>
+                      </Select>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right font-mono font-semibold text-xs text-text-primary">{formatCurrency(inv.total_amount)}</td>
@@ -216,15 +243,19 @@ function PurchaseInvoicesTab() {
 // ─── SALES INVOICES TAB ──────────────────────────────────────────────────────
 function SalesInvoicesTab() {
   const [search, setSearch] = useState('');
-  const { data: invoices = [], isLoading, refetch, isFetching } = useQuery({
+  const { data: invoicesResponse, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['audit-sales'],
-    queryFn: () => inventoryService.getSalesInvoices(0, 500),
+    queryFn: async () => {
+      const response = await inventoryService.getSalesInvoices(0, 500);
+      return normalizeListResponse(response);
+    },
   });
 
+  const invoices = Array.isArray(invoicesResponse) ? invoicesResponse : [];
   const filtered = invoices.filter(inv =>
     String(inv.receipt_number || '').toLowerCase().includes(search.toLowerCase()) ||
-    String(inv.cashier_id).includes(search)
-  );
+    String(inv.cashier_id || '').includes(search)
+  ).sort((a, b) => b.id - a.id);
 
   return (
     <div className="space-y-4">
@@ -239,7 +270,7 @@ function SalesInvoicesTab() {
         <span className="text-sm text-text-secondary">{filtered.length} receipts</span>
       </div>
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
-        <table className="w-full min-w-[800px] text-sm text-left">
+        <table className="w-full min-w-200 text-sm text-left">
           <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
@@ -303,19 +334,20 @@ const ACTION_BADGE = {
 
 function AdminActionsTab() {
   const [search, setSearch] = useState('');
-  const { data: logs = [], isLoading, refetch, isFetching } = useQuery({
+  const { data: logsResponse, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['audit-admin-logs'],
     queryFn: async () => {
       const res = await api.get('/api/audit/', { params: { skip: 0, limit: 500 } });
-      return res.data;
+      return normalizeListResponse(res.data);
     },
   });
 
+  const logs = Array.isArray(logsResponse) ? logsResponse : [];
   const filtered = logs.filter(log =>
-    log.action.toLowerCase().includes(search.toLowerCase()) ||
-    (log.actor_username || '').toLowerCase().includes(search.toLowerCase()) ||
-    (log.detail || '').toLowerCase().includes(search.toLowerCase()) ||
-    (log.resource || '').toLowerCase().includes(search.toLowerCase())
+    String(log.action || '').toLowerCase().includes(search.toLowerCase()) ||
+    String(log.actor_username || '').toLowerCase().includes(search.toLowerCase()) ||
+    String(log.detail || '').toLowerCase().includes(search.toLowerCase()) ||
+    String(log.resource || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -331,7 +363,7 @@ function AdminActionsTab() {
         <span className="text-sm text-text-secondary">{filtered.length} events</span>
       </div>
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
-        <table className="w-full min-w-[800px] text-sm text-left">
+        <table className="w-full min-w-200 text-sm text-left">
           <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
@@ -364,12 +396,12 @@ function AdminActionsTab() {
                   <td className="px-3 py-2 font-mono text-[11px]">{log.resource || '—'}</td>
                   <td className="px-3 py-2 text-xs text-text-secondary max-w-sm truncate" title={log.detail}>{log.detail || '—'}</td>
                   <td className="px-3 py-2">
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${log.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${log.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {log.status}
                     </span>
                   </td>
                   <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{log.ip_address || '—'}</td>
-                  <td className="px-3 py-2 text-xs text-text-secondary whitespace-nowrap">{formatDate(log.timestamp)}</td>
+                  <td className="px-3 py-2 text-xs text-text-secondary whitespace-nowrap">{formatDate(log.created_at)}</td>
                 </motion.tr>
               ))}
             </AnimatePresence>
@@ -403,15 +435,15 @@ export function GlobalAuditView() {
         </div>
       </div>
 
-      <div className="flex gap-4">
-        {/* Sidebar tabs */}
-        <Card className="w-48 shrink-0 h-fit shadow-sm bg-surface/90 backdrop-blur-md">
-          <CardContent className="p-1.5 flex flex-col gap-0.5">
+      <div className="flex flex-col gap-4">
+        {/* Top tabs */}
+        <Card className="w-full shrink-0 h-fit shadow-sm bg-surface/90 backdrop-blur-md">
+          <CardContent className="p-1.5 flex flex-row gap-0.5 overflow-x-auto no-scrollbar">
             {tabs.map(tab => (
               <Button
                 key={tab.id}
                 variant={activeTab === tab.id ? 'secondary' : 'ghost'}
-                className="justify-start w-full gap-2 transition-transform duration-150 ease-out active:scale-[0.98] h-8 text-xs px-2"
+                className="justify-start whitespace-nowrap gap-2 transition-transform duration-150 ease-out active:scale-[0.98] h-8 text-xs px-3"
                 onClick={() => setActiveTab(tab.id)}
               >
                 {tab.icon}

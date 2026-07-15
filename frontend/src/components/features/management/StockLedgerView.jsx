@@ -17,7 +17,8 @@ const TYPE_CONFIG = {
 
 function formatDate(str) {
   if (!str) return '—';
-  return new Date(str).toLocaleString('en-US', {
+  const dateStr = str.endsWith('Z') ? str : `${str}Z`;
+  return new Date(dateStr).toLocaleString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });

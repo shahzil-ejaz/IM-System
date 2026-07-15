@@ -11,6 +11,16 @@ export const inventoryService = {
     return response.data;
   },
 
+  updateProduct: async (productId, data) => {
+    const response = await api.put(`/api/products/${productId}`, data);
+    return response.data;
+  },
+
+  deleteProduct: async (productId) => {
+    const response = await api.delete(`/api/products/${productId}`);
+    return response.data;
+  },
+
   getBatches: async (skip = 0, limit = 100) => {
     const response = await api.get('/api/batches/', { params: { skip, limit } });
     return response.data;

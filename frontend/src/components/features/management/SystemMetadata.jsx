@@ -12,11 +12,14 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
   const queryClient = useQueryClient();
   const [newValue, setNewValue] = useState('');
   const [newSecondary, setNewSecondary] = useState('');
+  const [feedback, setFeedback] = useState(null);
   
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['metadata', type],
     queryFn: fetchFn
   });
+
+  const safeItems = Array.isArray(items) ? items : [];
 
   const createMutation = useMutation({
     mutationFn: createFn,
@@ -24,6 +27,13 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
       queryClient.invalidateQueries({ queryKey: ['metadata', type] });
       setNewValue('');
       setNewSecondary('');
+      setFeedback({ type: 'success', message: 'Item added successfully.' });
+    },
+    onError: (error) => {
+      setFeedback({
+        type: 'error',
+        message: error?.response?.data?.detail || 'Unable to add this item right now.'
+      });
     }
   });
 
@@ -31,22 +41,30 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
     mutationFn: deleteFn,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['metadata', type] });
+      setFeedback({ type: 'success', message: 'Item removed successfully.' });
+    },
+    onError: (error) => {
+      setFeedback({
+        type: 'error',
+        message: error?.response?.data?.detail || 'Unable to remove this item right now.'
+      });
     }
   });
 
   const handleCreate = (e) => {
     e.preventDefault();
     if (!newValue.trim()) return;
+    setFeedback(null);
     
     if (type === 'units') {
       if (!newSecondary.trim()) return;
-      createMutation.mutate({ name: newValue, short_name: newSecondary });
+      createMutation.mutate({ name: newValue.trim(), short_name: newSecondary.trim() });
     } else if (type === 'suppliers') {
-      createMutation.mutate({ name: newValue, contact: newSecondary });
+      createMutation.mutate({ name: newValue.trim(), contact: newSecondary.trim() });
     } else if (type === 'warehouses') {
-      createMutation.mutate({ name: newValue, location: newSecondary });
+      createMutation.mutate({ name: newValue.trim(), location: newSecondary.trim() });
     } else {
-      createMutation.mutate({ name: newValue });
+      createMutation.mutate({ name: newValue.trim() });
     }
   };
 
@@ -92,8 +110,14 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
         </Button>
       </form>
 
+      {feedback && (
+        <div className={`rounded-md border px-3 py-2 text-xs ${feedback.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+          {feedback.message}
+        </div>
+      )}
+
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
-        <table className="w-full min-w-[500px] text-sm text-left">
+        <table className="w-full min-w-125 text-sm text-left">
           <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
@@ -104,7 +128,7 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
           </thead>
           <tbody>
             <AnimatePresence mode="wait">
-              {items.map((item) => (
+              {safeItems.map((item) => (
                 <motion.tr 
                   key={`${type}-${item.id}`}
                   initial={{ opacity: 0, y: -10 }}
@@ -134,7 +158,7 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
                 </motion.tr>
               ))}
             </AnimatePresence>
-            {items.length === 0 && !isLoading && (
+            {safeItems.length === 0 && !isLoading && (
               <tr>
                 <td colSpan={hasSecondaryField ? "4" : "3"} className="px-3 py-6 text-center text-xs text-text-secondary">
                   No {type} found.
@@ -203,7 +227,7 @@ export function SystemMetadata() {
           <CardHeader className="py-3 px-4 border-b border-border/50 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-semibold capitalize">{activeTab} Configuration</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 flex justify-center min-h-[300px]">
+          <CardContent className="p-4 flex justify-center min-h-75">
             {activeTabData && (
               <MetadataTable 
                 type={activeTabData.id} 

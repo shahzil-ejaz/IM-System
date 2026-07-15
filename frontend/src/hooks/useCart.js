@@ -1,9 +1,14 @@
 import { create } from 'zustand';
 
 // Calculate totals based on cart items
-const calculateTotals = (items, taxRate = 0) => {
+const calculateTotals = (items) => {
   const subtotal = items.reduce((sum, item) => sum + (item.retail_price * item.quantity), 0);
-  const tax = subtotal * taxRate;
+  // Calculate tax per item based on its specific tax_rate
+  const tax = items.reduce((sum, item) => {
+    const rate = Number(item.tax_rate) || 0;
+    // tax_rate is stored as a percentage (e.g. 15 for 15%)
+    return sum + (item.retail_price * item.quantity * (rate / 100));
+  }, 0);
   const total = subtotal + tax;
   return { subtotal, tax, total };
 };
@@ -33,7 +38,7 @@ export const useCartStore = create((set, get) => ({
       newItems = [...state.items, { ...productBatch, quantity: 1 }];
     }
 
-    return { items: newItems, ...calculateTotals(newItems, state.taxRate) };
+    return { items: newItems, ...calculateTotals(newItems) };
   }),
 
   updateQuantity: (batchId, delta) => set((state) => {
@@ -48,17 +53,17 @@ export const useCartStore = create((set, get) => ({
       return i;
     });
 
-    return { items: newItems, ...calculateTotals(newItems, state.taxRate) };
+    return { items: newItems, ...calculateTotals(newItems) };
   }),
 
   removeItem: (batchId) => set((state) => {
     const newItems = state.items.filter(i => i.batch_id !== batchId);
-    return { items: newItems, ...calculateTotals(newItems, state.taxRate) };
+    return { items: newItems, ...calculateTotals(newItems) };
   }),
 
   clearCart: () => set((state) => ({
     items: [],
-    ...calculateTotals([], state.taxRate)
+    ...calculateTotals([])
   })),
 
   // Hold / Recall features
@@ -67,7 +72,7 @@ export const useCartStore = create((set, get) => ({
     return {
       heldCart: { items: state.items },
       items: [],
-      ...calculateTotals([], state.taxRate)
+      ...calculateTotals([])
     };
   }),
 
@@ -76,7 +81,7 @@ export const useCartStore = create((set, get) => ({
     return {
       items: state.heldCart.items,
       heldCart: null,
-      ...calculateTotals(state.heldCart.items, state.taxRate)
+      ...calculateTotals(state.heldCart.items)
     };
   })
 }));
