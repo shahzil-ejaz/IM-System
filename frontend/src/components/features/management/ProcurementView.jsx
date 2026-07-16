@@ -93,7 +93,7 @@ export function ProcurementView() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 w-full">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-lg font-bold text-text-primary tracking-tight">Receive Stock (Procurement)</h1>
