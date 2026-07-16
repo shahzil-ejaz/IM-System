@@ -17,7 +17,7 @@ def get_all_warehouses(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     warehouses = db.query(models.Warehouse).offset(skip).limit(limit).all()
     return warehouses
@@ -26,7 +26,7 @@ def get_all_warehouses(
 def get_single_warehouse(
     warehouse_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     warehouse = db.query(models.Warehouse).filter(models.Warehouse.id == warehouse_id).first()
 

@@ -29,6 +29,8 @@ export function useAuth() {
         navigate('/manager');
       } else if (data.user.role === 'admin') {
         navigate('/admin');
+      } else if (data.user.role === 'self_order') {
+        navigate('/self-order');
       } else {
         navigate('/'); // fallback
       }

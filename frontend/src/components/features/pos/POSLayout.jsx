@@ -4,6 +4,7 @@ import { useCartStore } from '../../../hooks/useCart';
 import { useAuth } from '../../../hooks/useAuth';
 import { useScanner } from '../../../hooks/useScanner';
 import { useInventory, useCheckout } from '../../../hooks/useInventory';
+import { usePOSSettings } from '../../../hooks/usePOSSettings';
 import { POSCartRow } from './POSCartRow';
 import { useBarcodeScanner } from './useBarcodeScanner';
 import { usePopup } from '../../../contexts/PopupContext';
@@ -36,6 +37,7 @@ const playScanBeep = () => {
 };
 
 export function POSLayout() {
+  const { enableScanner, enableHoldCart, enableReprint } = usePOSSettings();
   const [paymentMethod, setPaymentMethod] = useState('cash'); // NEW STATE
   const [amountPaid, setAmountPaid] = useState(''); // NEW STATE
   const [manualBarcode, setManualBarcode] = useState('');
@@ -235,10 +237,12 @@ export function POSLayout() {
       const payload = {
         cashier_id: user?.id || 1,
         payment_method: paymentMethod,
+        amount_tendered: paymentMethod === 'cash' ? Number(amountPaid) : null,
+        change_due: paymentMethod === 'cash' ? Number((Number(amountPaid) - total).toFixed(2)) : null,
         items: items.map(i => ({ batch_id: i.batch_id, quantity: i.quantity }))
       };
 
-      await checkoutMutation.mutateAsync(payload);
+      const response = await checkoutMutation.mutateAsync(payload);
 
       clearCart();
       setAmountPaid('');
@@ -247,7 +251,7 @@ export function POSLayout() {
         message: `Checkout successful!${paymentMethod === 'cash' ? `\nChange due: Rs ${(Number(amountPaid || total) - total).toFixed(2)}` : ''}`,
         type: 'success'
       });
-      // Optionally auto-print here by fetching the new invoice, but for now we rely on the Reprint button
+      handlePrint(response);
     } catch (error) {
       console.error("Checkout failed:", error);
       showPopup({
@@ -267,7 +271,7 @@ export function POSLayout() {
   }, []);
 
   return (
-    <div className="bg-canvas text-slate-900 min-h-dvh lg:h-dvh lg:overflow-hidden flex flex-col print:bg-white">
+    <div className="bg-transparent text-slate-900 min-h-dvh lg:h-dvh lg:overflow-hidden flex flex-col print:bg-white">
       {/* Stitch POS Header */}
       <header className="h-14 lg:h-12 border-b border-border bg-surface/80 backdrop-blur-md px-3 lg:px-4 flex items-center justify-between sticky top-0 z-50 shrink-0 no-print">
         <div className="flex items-center gap-2 lg:gap-4">
@@ -301,14 +305,18 @@ export function POSLayout() {
               </>
             )}
           </button>
-          <button onClick={() => heldCart ? recallCart() : holdCart()} className="flex items-center gap-2 px-3 lg:px-4 py-1.5 lg:py-2 hover:bg-slate-100 rounded-lg transition-colors border border-border">
-            <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
-            <span className="text-xs lg:text-sm font-semibold hidden sm:inline">{heldCart ? 'Recall Cart' : 'Hold Cart'}</span>
-          </button>
-          <button onClick={() => setIsReprintDialogOpen(true)} className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors border border-border">
-            <Printer className="w-5 h-5" />
-            <span className="text-sm font-semibold">Reprint</span>
-          </button>
+          {enableHoldCart && (
+            <button onClick={() => heldCart ? recallCart() : holdCart()} className="flex items-center gap-2 px-3 lg:px-4 py-1.5 lg:py-2 hover:bg-slate-100 rounded-lg transition-colors border border-border">
+              <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
+              <span className="text-xs lg:text-sm font-semibold hidden sm:inline">{heldCart ? 'Recall Cart' : 'Hold Cart'}</span>
+            </button>
+          )}
+          {enableReprint && (
+            <button onClick={() => setIsReprintDialogOpen(true)} className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors border border-border">
+              <Printer className="w-5 h-5" />
+              <span className="text-sm font-semibold">Reprint</span>
+            </button>
+          )}
           <button onClick={logout} className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg border border-red-100 shrink-0">
             <Lock className="w-4 h-4 lg:w-5 lg:h-5" />
           </button>
@@ -333,16 +341,18 @@ export function POSLayout() {
                 onChange={(e) => setManualBarcode(e.target.value)}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCameraEnabled(prev => !prev);
-                  }}
-                  className="flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  {isCameraActive ? <CameraOff className="w-3.5 h-3.5" /> : <Camera className="w-3.5 h-3.5" />}
-                  {isCameraActive ? 'STOP' : 'CAMERA'}
-                </button>
+                {enableScanner && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraEnabled(prev => !prev);
+                    }}
+                    className="flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    {isCameraActive ? <CameraOff className="w-3.5 h-3.5" /> : <Camera className="w-3.5 h-3.5" />}
+                    {isCameraActive ? 'STOP' : 'CAMERA'}
+                  </button>
+                )}
                 <button type="submit" className="bg-slate-700 text-white px-3 py-1 rounded-md font-bold hover:opacity-90 active:scale-[0.97] transition-transform duration-150 ease-out text-xs">
                   SEARCH
                 </button>
@@ -427,9 +437,9 @@ export function POSLayout() {
               {activeRightPane === 'checkout' ? (
                 <motion.div 
                   key="checkout-pane"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: -20, filter: 'blur(2px)' }}
+                  animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, x: -20, filter: 'blur(2px)' }}
                   transition={{ duration: 0.15, ease: 'easeOut' }}
                   className="flex flex-col h-full p-4"
                 >
@@ -531,9 +541,9 @@ export function POSLayout() {
               ) : (
                 <motion.div 
                   key="items-pane"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0, x: 20, filter: 'blur(2px)' }}
+                  animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, x: 20, filter: 'blur(2px)' }}
                   transition={{ duration: 0.15, ease: 'easeOut' }}
                   className="flex flex-col h-full"
                 >

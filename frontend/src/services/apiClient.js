@@ -23,16 +23,19 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status } = error.response;
-      
+
       if (status === 401) {
         // Clear stale credentials
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_role');
-        
-        // Bounce user to login window cleanly
-        window.location.href = '/login?error=session_expired';
+
+        // Bounce user to login window cleanly unless it's a login attempt
+        const originalUrl = error.config?.url || '';
+        if (!originalUrl.includes('/login')) {
+          window.location.href = '/login?error=session_expired';
+        }
       }
-      
+
       if (status === 403) {
         console.error('Permission Denied: Insufficient user privileges.');
       }

@@ -74,6 +74,18 @@ export const ReceiptPrinter = forwardRef(({ invoice }, ref) => {
           <span>TOTAL:</span>
           <span>Rs {Number(invoice.total_amount).toFixed(2)}</span>
         </div>
+        {invoice.payment_method === 'cash' && invoice.amount_tendered != null && (
+          <>
+            <div className="flex justify-between mt-1 text-slate-600">
+              <span>Cash Tendered:</span>
+              <span>Rs {Number(invoice.amount_tendered).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-semibold">
+              <span>Change Due:</span>
+              <span>Rs {Number(invoice.change_due).toFixed(2)}</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="text-center mt-6 text-xs italic">

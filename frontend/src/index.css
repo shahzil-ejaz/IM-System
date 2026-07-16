@@ -1,46 +1,112 @@
 @import "tailwindcss";
+@source "./components/features/marketing";
+:root {
+  /* Green - Primary Color Scale */
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d1fae5;
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6ee7b7;
+  --color-primary-400: #34d399;
+  --color-primary-500: #10b981;
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
+  --color-primary-800: #065f46;
+  --color-primary-900: #064e3b;
+  --color-primary-950: #022c22;
+
+  /* Black/Dark - Neutral Color Scale */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  --color-neutral-950: #020617;
+  
+  color-scheme: light;
+}
 
 @theme {
-  --color-canvas: #f4f4f5; /* Zinc 100 */
+  /* Override Tailwind's default emerald with our primary scale */
+  --color-emerald-50: var(--color-primary-50);
+  --color-emerald-100: var(--color-primary-100);
+  --color-emerald-200: var(--color-primary-200);
+  --color-emerald-300: var(--color-primary-300);
+  --color-emerald-400: var(--color-primary-400);
+  --color-emerald-500: var(--color-primary-500);
+  --color-emerald-600: var(--color-primary-600);
+  --color-emerald-700: var(--color-primary-700);
+  --color-emerald-800: var(--color-primary-800);
+  --color-emerald-900: var(--color-primary-900);
+  --color-emerald-950: var(--color-primary-950);
+
+  /* Override Tailwind's default slate with our neutral scale */
+  --color-slate-50: var(--color-neutral-50);
+  --color-slate-100: var(--color-neutral-100);
+  --color-slate-200: var(--color-neutral-200);
+  --color-slate-300: var(--color-neutral-300);
+  --color-slate-400: var(--color-neutral-400);
+  --color-slate-500: var(--color-neutral-500);
+  --color-slate-600: var(--color-neutral-600);
+  --color-slate-700: var(--color-neutral-700);
+  --color-slate-800: var(--color-neutral-800);
+  --color-slate-900: var(--color-neutral-900);
+  --color-slate-950: var(--color-neutral-950);
+
+  /* Override Tailwind's default zinc with our neutral scale */
+  --color-zinc-50: var(--color-neutral-50);
+  --color-zinc-100: var(--color-neutral-100);
+  --color-zinc-200: var(--color-neutral-200);
+  --color-zinc-300: var(--color-neutral-300);
+  --color-zinc-400: var(--color-neutral-400);
+  --color-zinc-500: var(--color-neutral-500);
+  --color-zinc-600: var(--color-neutral-600);
+  --color-zinc-700: var(--color-neutral-700);
+  --color-zinc-800: var(--color-neutral-800);
+  --color-zinc-900: var(--color-neutral-900);
+  --color-zinc-950: var(--color-neutral-950);
+
+  /* Core UI Colors mapped to Neutral/Primary */
+  --color-canvas: var(--color-neutral-50);
   --color-surface: #ffffff;
-  --color-text-primary: #09090b; /* Zinc 950 */
-  --color-text-secondary: #71717a; /* Zinc 500 */
-  --color-border: #e4e4e7; /* Zinc 200 */
+  --color-text-primary: var(--color-neutral-950);
+  --color-text-secondary: var(--color-neutral-500);
+  --color-border: var(--color-neutral-200);
+  --color-input: var(--color-neutral-200);
   
   --color-background: var(--color-canvas);
   --color-foreground: var(--color-text-primary);
   
-  --color-card: #ffffff;
-  --color-card-foreground: #09090b;
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-text-primary);
   
-  --color-popover: #ffffff;
-  --color-popover-foreground: #09090b;
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-text-primary);
 
-  --color-primary: #18181b; /* Zinc 900 */
-  --color-primary-foreground: #fafafa;
+  --color-primary: var(--color-primary-600);
+  --color-primary-foreground: #ffffff;
   
-  --color-secondary: #f4f4f5;
-  --color-secondary-foreground: #18181b;
+  --color-secondary: var(--color-neutral-100);
+  --color-secondary-foreground: var(--color-neutral-900);
   
-  --color-muted: #f4f4f5;
-  --color-muted-foreground: #71717a;
+  --color-muted: var(--color-neutral-100);
+  --color-muted-foreground: var(--color-neutral-500);
   
-  --color-accent: #f4f4f5;
-  --color-accent-foreground: #18181b;
+  --color-accent: var(--color-primary-50);
+  --color-accent-foreground: var(--color-primary-900);
   
-  --color-destructive: #ef4444; /* Red 500 */
-  --color-destructive-foreground: #fafafa;
+  --color-destructive: #ef4444; 
+  --color-destructive-foreground: #ffffff;
   
-  --color-ring: #18181b;
+  --color-ring: var(--color-primary-500);
   --radius: 0.5rem;
 
   --font-sans: "Geist Sans", "Inter", system-ui, sans-serif;
   --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
-}
-
-/* Light Mode Enforcement */
-:root {
-  color-scheme: light;
 }
 
 @layer base {
@@ -59,6 +125,16 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+/* Disable sticky hovers on touch devices */
+@media (hover: none) {
+  .hover\:scale-110:hover, 
+  .hover\:scale-105:hover,
+  .group:hover .group-hover\:scale-105,
+  .group:hover .group-hover\:translate-x-1 {
+    transform: none !important;
   }
 }
 

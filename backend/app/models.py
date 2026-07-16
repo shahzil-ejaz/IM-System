@@ -113,6 +113,7 @@ class Supplier(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
     contact = Column(String, nullable=True)
+    whatsapp_number = Column(String, nullable=True)
 
 
 class PurchaseInvoice(Base):
@@ -140,6 +141,8 @@ class SalesInvoice(Base):
     total_amount = Column(Numeric(12, 2), nullable=False)
 
     payment_method = Column(String, nullable=False)  # cash, card, split, unpaid
+    amount_tendered = Column(Numeric(12, 2), nullable=True)
+    change_due = Column(Numeric(12, 2), nullable=True)
     status = Column(String, default="completed")  # completed, refunded
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -180,3 +183,15 @@ class AuditLog(Base):
     status = Column(String, default="success")                         # "success" or "failure"
     ip_address = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+
+
+# ==========================================
+# 8. SYSTEM CONFIGURATION
+# ==========================================
+class SystemSettings(Base):
+    """Stores global application settings."""
+    __tablename__ = "system_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True, nullable=False)
+    value = Column(String, nullable=False)  # JSON string or plain text
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

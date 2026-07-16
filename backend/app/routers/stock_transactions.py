@@ -59,7 +59,7 @@ def get_all_transactions(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     """
     Returns the complete history of all stock movements, sorted by newest first.
@@ -73,7 +73,7 @@ def get_all_transactions_enriched(
     skip: int = 0,
     limit: int = 500,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     """
     Returns stock transactions with joined product, batch, warehouse and user names.
@@ -163,7 +163,7 @@ def get_batch_balance(
     batch_id: int,
     warehouse_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     """
     Sums up all historical movements to find the exact current stock 
@@ -188,7 +188,7 @@ def get_total_product_balance(
     product_id: int,
     warehouse_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     """
     Finds all batches belonging to a product and sums their quantities 

@@ -9,11 +9,13 @@ import { Trash2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePopup } from '../../../contexts/PopupContext';
 
-function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
+function MetadataTable({ type, fetchFn, createFn, updateFn, deleteFn }) {
   const queryClient = useQueryClient();
   const { showPopup } = usePopup();
   const [newValue, setNewValue] = useState('');
   const [newSecondary, setNewSecondary] = useState('');
+  const [newTertiary, setNewTertiary] = useState('');
+  const [editingId, setEditingId] = useState(null);
   
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['metadata', type],
@@ -28,6 +30,7 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
       queryClient.invalidateQueries({ queryKey: ['metadata', type] });
       setNewValue('');
       setNewSecondary('');
+      setNewTertiary('');
       showPopup({ type: 'success', message: 'Item added successfully.', title: 'Success' });
     },
     onError: (error) => {
@@ -35,6 +38,25 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
         type: 'error',
         title: 'Error',
         message: error?.response?.data?.detail || 'Unable to add this item right now.'
+      });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data) => updateFn(editingId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['metadata', type] });
+      setNewValue('');
+      setNewSecondary('');
+      setNewTertiary('');
+      setEditingId(null);
+      showPopup({ type: 'success', message: 'Item updated successfully.', title: 'Success' });
+    },
+    onError: (error) => {
+      showPopup({
+        type: 'error',
+        title: 'Error',
+        message: error?.response?.data?.detail || 'Unable to update this item right now.'
       });
     }
   });
@@ -54,24 +76,47 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
     }
   });
 
-  const handleCreate = (e) => {
+  const handleCreateOrUpdate = (e) => {
     e.preventDefault();
     if (!newValue.trim()) return;
     
+    let payload = {};
     if (type === 'units') {
       if (!newSecondary.trim()) return;
-      createMutation.mutate({ name: newValue.trim(), short_name: newSecondary.trim() });
+      payload = { name: newValue.trim(), short_name: newSecondary.trim() };
     } else if (type === 'suppliers') {
-      createMutation.mutate({ name: newValue.trim(), contact: newSecondary.trim() });
+      payload = { name: newValue.trim(), contact: newSecondary.trim(), whatsapp_number: newTertiary.trim() || null };
     } else if (type === 'warehouses') {
-      createMutation.mutate({ name: newValue.trim(), location: newSecondary.trim() });
+      payload = { name: newValue.trim(), location: newSecondary.trim() };
     } else {
-      createMutation.mutate({ name: newValue.trim() });
+      payload = { name: newValue.trim() };
+    }
+
+    if (editingId && updateFn) {
+      updateMutation.mutate(payload);
+    } else {
+      createMutation.mutate(payload);
     }
   };
 
+  const handleEditClick = (item) => {
+    setEditingId(item.id);
+    setNewValue(item.name);
+    setNewSecondary(type === 'units' ? item.short_name : type === 'suppliers' ? (item.contact || '') : (item.location || ''));
+    setNewTertiary(type === 'suppliers' ? (item.whatsapp_number || '') : '');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setNewValue('');
+    setNewSecondary('');
+    setNewTertiary('');
+  };
+
   const hasSecondaryField = ['units', 'suppliers', 'warehouses'].includes(type);
+  const hasTertiaryField = type === 'suppliers';
   const isFormValid = hasSecondaryField ? newValue.trim() && (type === 'units' ? newSecondary.trim() : true) : newValue.trim();
+  const isPending = createMutation.isPending || (updateMutation && updateMutation.isPending);
 
   const getSecondaryPlaceholder = () => {
     if (type === 'units') return "Short name (e.g. kg, pcs)...";
@@ -87,14 +132,19 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
     return "";
   };
 
+  const getTertiaryHeader = () => {
+    if (type === 'suppliers') return "WhatsApp";
+    return "";
+  };
+
   return (
-    <div className="space-y-6 w-full max-w-3xl">
-      <form onSubmit={handleCreate} className="flex gap-2">
+    <div className="space-y-6 w-full max-w-4xl">
+      <form onSubmit={handleCreateOrUpdate} className="flex gap-2">
         <Input 
-          placeholder={`New ${type.slice(0, -1)} name...`} 
+          placeholder={editingId ? `Update ${type.slice(0, -1)} name...` : `New ${type.slice(0, -1)} name...`} 
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
-          disabled={createMutation.isPending}
+          disabled={isPending}
           className="bg-surface flex-1 h-8 text-xs"
         />
         {hasSecondaryField && (
@@ -102,25 +152,39 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
             placeholder={getSecondaryPlaceholder()} 
             value={newSecondary}
             onChange={(e) => setNewSecondary(e.target.value)}
-            disabled={createMutation.isPending}
-            className="bg-surface w-48 h-8 text-xs"
+            disabled={isPending}
+            className="bg-surface w-40 h-8 text-xs"
           />
         )}
-        <Button type="submit" disabled={createMutation.isPending || !isFormValid} className="h-8 text-xs active:scale-[0.97] transition-transform duration-150 ease-out">
-          <Plus className="w-3.5 h-3.5 mr-1" />
-          Add
+        {hasTertiaryField && (
+          <Input 
+            placeholder="WhatsApp (e.g. +123456)..." 
+            value={newTertiary}
+            onChange={(e) => setNewTertiary(e.target.value)}
+            disabled={isPending}
+            className="bg-surface w-40 h-8 text-xs"
+          />
+        )}
+        <Button type="submit" disabled={isPending || !isFormValid} className="h-8 text-xs active:scale-[0.97] transition-transform duration-150 ease-out">
+          {editingId ? 'Update' : <><Plus className="w-3.5 h-3.5 mr-1" /> Add</>}
         </Button>
+        {editingId && (
+          <Button type="button" variant="outline" onClick={cancelEdit} disabled={isPending} className="h-8 text-xs">
+            Cancel
+          </Button>
+        )}
       </form>
 
 
 
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
         <table className="w-full min-w-125 text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
+          <thead className="bg-secondary/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">Name</th>
               {hasSecondaryField && <th className="px-3 py-2">{getSecondaryHeader()}</th>}
+              {hasTertiaryField && <th className="px-3 py-2">{getTertiaryHeader()}</th>}
               <th className="px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
@@ -133,7 +197,7 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.15, ease: 'easeOut' }}
-                  className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150"
+                  className="border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors duration-150"
                 >
                   <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{item.id}</td>
                   <td className="px-3 py-2 text-xs font-medium">{item.name}</td>
@@ -142,7 +206,23 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
                       {type === 'units' ? item.short_name : type === 'suppliers' ? item.contact : item.location}
                     </td>
                   )}
+                  {hasTertiaryField && (
+                    <td className="px-3 py-2 text-xs text-text-secondary">
+                      {item.whatsapp_number}
+                    </td>
+                  )}
                   <td className="px-3 py-2 text-right">
+                    {updateFn && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 h-7 px-2 mr-1 active:scale-[0.97] transition-transform duration-150 ease-out"
+                        onClick={() => handleEditClick(item)}
+                        disabled={isPending}
+                      >
+                        Edit
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -158,14 +238,14 @@ function MetadataTable({ type, fetchFn, createFn, deleteFn }) {
             </AnimatePresence>
             {safeItems.length === 0 && !isLoading && (
               <tr>
-                <td colSpan={hasSecondaryField ? "4" : "3"} className="px-3 py-6 text-center text-xs text-text-secondary">
+                <td colSpan={1 + 1 + (hasSecondaryField ? 1 : 0) + (hasTertiaryField ? 1 : 0) + 1} className="px-3 py-6 text-center text-xs text-text-secondary">
                   No {type} found.
                 </td>
               </tr>
             )}
             {isLoading && (
               <tr>
-                <td colSpan={hasSecondaryField ? "4" : "3"} className="px-3 py-6 text-center text-xs text-text-secondary">
+                <td colSpan={1 + 1 + (hasSecondaryField ? 1 : 0) + (hasTertiaryField ? 1 : 0) + 1} className="px-3 py-6 text-center text-xs text-text-secondary">
                   Loading...
                 </td>
               </tr>
@@ -190,7 +270,7 @@ export function SystemMetadata() {
     { id: 'brands', name: 'Brands', service: metadataService.getBrands, create: metadataService.createBrand, del: metadataService.deleteBrand },
     { id: 'categories', name: 'Categories', service: metadataService.getCategories, create: metadataService.createCategory, del: metadataService.deleteCategory },
     { id: 'units', name: 'Units', service: metadataService.getUnits, create: metadataService.createUnit, del: metadataService.deleteUnit },
-    { id: 'suppliers', name: 'Suppliers', service: metadataService.getSuppliers, create: metadataService.createSupplier, del: metadataService.deleteSupplier },
+    { id: 'suppliers', name: 'Suppliers', service: metadataService.getSuppliers, create: metadataService.createSupplier, update: metadataService.updateSupplier, del: metadataService.deleteSupplier },
     { id: 'warehouses', name: 'Warehouses', service: metadataService.getWarehouses, create: metadataService.createWarehouse, del: metadataService.deleteWarehouse },
   ];
 
@@ -231,6 +311,7 @@ export function SystemMetadata() {
                 type={activeTabData.id} 
                 fetchFn={activeTabData.service}
                 createFn={activeTabData.create}
+                updateFn={activeTabData.update}
                 deleteFn={activeTabData.del}
               />
             )}

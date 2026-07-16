@@ -236,3 +236,44 @@ def toggle_user_status(
     db.commit()
     db.refresh(user)
     return user
+
+
+# ==========================================
+# DELETE USER — admin-only
+# ==========================================
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["admin"])),
+):
+    """Hard delete a user from the system."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own account",
+        )
+
+    try:
+        db.delete(user)
+        record_audit(
+            db, "USER_DELETED", actor=current_user,
+            resource="User", resource_id=user.id,
+            detail=f"Admin '{current_user.username}' deleted user '{user.username}'",
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete user due to associated records. Consider suspending them instead.",
+        )
+    
+    return None

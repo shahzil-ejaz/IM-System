@@ -19,6 +19,7 @@ from app.routers import (
     stock_transactions,
     sales,
     audit_logs,
+    settings,
 )
 
 # Initialize the application
@@ -33,7 +34,7 @@ origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.stri
 
 app.add_middleware(
     CORSMiddleware,            # type: ignore
-    allow_origins=origins,
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,6 +55,7 @@ app.include_router(purchase_invoices.router)
 app.include_router(stock_transactions.router)
 app.include_router(sales.router)
 app.include_router(audit_logs.router)
+app.include_router(settings.router)
 
 
 # A simple health check route

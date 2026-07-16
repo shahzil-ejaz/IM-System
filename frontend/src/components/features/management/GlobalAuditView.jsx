@@ -93,7 +93,7 @@ function LedgerTab() {
       </div>
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
         <table className="w-full min-w-200 text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
+          <thead className="bg-secondary/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">Type</th>
@@ -114,7 +114,7 @@ function LedgerTab() {
             )}
             <AnimatePresence>
               {filtered.map(t => (
-                <motion.tr key={t.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150">
+                <motion.tr key={t.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors duration-150">
                   <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{t.id}</td>
                   <td className="px-3 py-2"><Badge map={TYPE_BADGE} value={t.transaction_type} /></td>
                   <td className="px-3 py-2 font-mono text-[11px]">{t.batch_id}</td>
@@ -186,7 +186,7 @@ function PurchaseInvoicesTab() {
       </div>
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
         <table className="w-full min-w-200 text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
+          <thead className="bg-secondary/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">Invoice #</th>
@@ -205,7 +205,7 @@ function PurchaseInvoicesTab() {
             )}
             <AnimatePresence>
               {filtered.map(inv => (
-                <motion.tr key={inv.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150">
+                <motion.tr key={inv.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors duration-150">
                   <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{inv.id}</td>
                   <td className="px-3 py-2 font-mono text-xs font-semibold">{inv.invoice_number}</td>
                   <td className="px-3 py-2 text-xs font-medium">{suppliers.find(s => s.id === inv.supplier_id)?.name || inv.supplier_id}</td>
@@ -277,7 +277,7 @@ function SalesInvoicesTab() {
       </div>
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
         <table className="w-full min-w-200 text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
+          <thead className="bg-secondary/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">Receipt #</th>
@@ -299,7 +299,7 @@ function SalesInvoicesTab() {
             )}
             <AnimatePresence>
               {filtered.map(inv => (
-                <motion.tr key={inv.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150">
+                <motion.tr key={inv.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors duration-150">
                   <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{inv.id}</td>
                   <td className="px-3 py-2 font-mono text-[11px] font-semibold">{inv.receipt_number}</td>
                   <td className="px-3 py-2 font-mono text-[11px]">{inv.cashier_id}</td>
@@ -370,7 +370,7 @@ function AdminActionsTab() {
       </div>
       <div className="border border-border rounded-lg overflow-x-auto no-scrollbar bg-surface shadow-sm">
         <table className="w-full min-w-200 text-sm text-left">
-          <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
+          <thead className="bg-secondary/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
             <tr>
               <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">Action</th>
@@ -391,10 +391,10 @@ function AdminActionsTab() {
             )}
             <AnimatePresence>
               {filtered.map(log => (
-                <motion.tr key={log.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150">
+                <motion.tr key={log.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15, ease: 'easeOut' }} className="border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors duration-150">
                   <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{log.id}</td>
                   <td className="px-3 py-2">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm ${ACTION_BADGE[log.action]?.cls || 'bg-slate-100 text-slate-700'}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm ${ACTION_BADGE[log.action]?.cls || 'bg-secondary text-primary'}`}>
                       {log.action}
                     </span>
                   </td>

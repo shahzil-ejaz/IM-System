@@ -3,17 +3,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useInventory } from '../../../hooks/useInventory';
 import { motion, AnimatePresence } from 'motion/react';
-import { PackageSearch, ArrowDownToLine, Archive } from 'lucide-react';
+import { PackageSearch, ArrowDownToLine, Archive, Search } from 'lucide-react';
 import { CreateProductDialog } from './CreateProductDialog';
 import { EditProductDialog } from './EditProductDialog';
 import { DeleteProductDialog } from './DeleteProductDialog';
 import { useQuery } from '@tanstack/react-query';
 import { metadataService } from '../../../services/metadataService';
+import { Input } from '@/components/ui/input';
 
 export function CatalogView() {
   const { products, batches, isLoadingProducts, isLoadingBatches } = useInventory();
   const [activeTab, setActiveTab] = useState('products'); // 'products' or 'batches'
   const [showSoldOut, setShowSoldOut] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const renderExpiry = (dateString) => {
+    if (!dateString) return '—';
+    const isExpired = new Date(dateString) < new Date();
+    if (isExpired) {
+      return <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-sm font-semibold text-[10px] uppercase tracking-wider">Expired</span>;
+    }
+    return dateString;
+  };
 
   const { data: brands = [] } = useQuery({ queryKey: ['metadata', 'brands'], queryFn: metadataService.getBrands });
   const { data: categories = [] } = useQuery({ queryKey: ['metadata', 'categories'], queryFn: metadataService.getCategories });
@@ -52,14 +63,29 @@ export function CatalogView() {
         </Card>
 
         <Card className="flex-1 shadow-sm bg-surface/90 backdrop-blur-md overflow-hidden">
-          <CardHeader className="py-3 px-4 border-b border-border/50 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold capitalize">{activeTab}</CardTitle>
+          <CardHeader className="py-3 px-4 border-b border-border/50 flex flex-row items-center justify-between gap-4">
+            <CardTitle className="text-sm font-semibold capitalize whitespace-nowrap">{activeTab}</CardTitle>
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                type="text"
+                placeholder={`Search ${activeTab}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-8 text-xs bg-slate-50 focus-visible:ring-emerald-500"
+              />
+            </div>
           </CardHeader>
           <CardContent className="p-0">
-            {activeTab === 'products' ? (
-              <div className="overflow-x-auto no-scrollbar">
+            {activeTab === 'products' ? (() => {
+              const filteredProducts = products.filter(p => 
+                p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                p.sku.toLowerCase().includes(searchQuery.toLowerCase())
+              );
+              return (
+                <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full min-w-[600px] text-sm text-left">
-                  <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
+                  <thead className="bg-secondary/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
                     <tr>
                       <th className="px-3 py-2">SKU</th>
                       <th className="px-3 py-2">Name</th>
@@ -70,7 +96,7 @@ export function CatalogView() {
                   </thead>
                   <tbody>
                     <AnimatePresence>
-                      {products.map((p) => (
+                      {filteredProducts.map((p) => (
                         <motion.tr
                           key={p.id}
                           layout
@@ -78,7 +104,7 @@ export function CatalogView() {
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.98 }}
                           transition={{ duration: 0.15, ease: 'easeOut' }}
-                          className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150"
+                          className="border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors duration-150"
                         >
                           <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{p.sku}</td>
                           <td className="px-3 py-2 text-xs font-medium">{p.name}</td>
@@ -93,24 +119,30 @@ export function CatalogView() {
                         </motion.tr>
                       ))}
                     </AnimatePresence>
-                    {products.length === 0 && !isLoadingProducts && (
+                    {filteredProducts.length === 0 && !isLoadingProducts && (
                       <tr>
-                        <td colSpan="4" className="px-3 py-6 text-center text-xs text-text-secondary">No products found.</td>
+                        <td colSpan="5" className="px-3 py-6 text-center text-xs text-text-secondary">No products found.</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
-            ) : (() => {
-              const activeBatches = batches.filter(b => b.quantity > 0);
-              const soldOutBatches = batches.filter(b => b.quantity <= 0);
+            )})() : (() => {
+              const filteredBatches = batches.filter(b => {
+                const p = products.find(prod => prod.id === b.product_id);
+                const nameMatch = p?.name.toLowerCase().includes(searchQuery.toLowerCase());
+                const batchNumMatch = b.batch_number.toLowerCase().includes(searchQuery.toLowerCase());
+                return nameMatch || batchNumMatch;
+              });
+              const activeBatches = filteredBatches.filter(b => b.quantity > 0);
+              const soldOutBatches = filteredBatches.filter(b => b.quantity <= 0);
 
               return (
                 <div>
                   {/* Active Batches */}
                   <div className="overflow-x-auto no-scrollbar">
                     <table className="w-full min-w-[600px] text-sm text-left">
-                      <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
+                      <thead className="bg-secondary/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
                         <tr>
                           <th className="px-3 py-2">Batch #</th>
                           <th className="px-3 py-2">Product</th>
@@ -129,14 +161,14 @@ export function CatalogView() {
                               initial={{ opacity: 0, scale: 0.98 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ duration: 0.15, ease: 'easeOut' }}
-                              className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150"
+                              className="border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors duration-150"
                             >
                               <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{b.batch_number}</td>
                               <td className="px-3 py-2 text-xs font-medium">{products.find(p => p.id === b.product_id)?.name || b.product_id}</td>
                               <td className="px-3 py-2 text-xs text-right font-mono">{b.quantity} / {b.max_quantity}</td>
                               <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.retail_price || 0).toFixed(2)}</td>
                               <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.cost_price || 0).toFixed(2)}</td>
-                              <td className="px-3 py-2 text-xs text-text-secondary">{b.expiry_date || '—'}</td>
+                              <td className="px-3 py-2 text-xs text-text-secondary">{renderExpiry(b.expiry_date)}</td>
                             </motion.tr>
                           ))}
                         </AnimatePresence>
@@ -150,10 +182,10 @@ export function CatalogView() {
                   </div>
 
                   {/* Sold Out Section */}
-                  <div className="border-t border-border bg-slate-50/30">
+                  <div className="border-t border-border bg-secondary/30">
                     <button
                       onClick={() => setShowSoldOut(!showSoldOut)}
-                      className="w-full px-4 py-3 flex items-center justify-between text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-slate-50 transition-colors active:scale-[0.99]"
+                      className="w-full px-4 py-3 flex items-center justify-between text-xs font-semibold text-text-secondary hover:text-primary hover:bg-secondary/50 transition-colors active:scale-[0.99]"
                     >
                       <span className="flex items-center gap-2">
                         <span className="font-medium">Sold Out Batches</span>
@@ -178,7 +210,7 @@ export function CatalogView() {
                         >
                           <div className="overflow-x-auto no-scrollbar">
                             <table className="w-full min-w-[600px] text-sm text-left">
-                              <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
+                              <thead className="bg-secondary/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
                                 <tr>
                                   <th className="px-3 py-2">Batch #</th>
                                   <th className="px-3 py-2">Product</th>
@@ -194,14 +226,14 @@ export function CatalogView() {
                                     key={b.id}
                                     initial={{ opacity: 0, scale: 0.98 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150 opacity-60"
+                                    className="border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors duration-150 opacity-60"
                                   >
                                     <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">{b.batch_number}</td>
                                     <td className="px-3 py-2 text-xs font-medium">{products.find(p => p.id === b.product_id)?.name || b.product_id}</td>
                                     <td className="px-3 py-2 text-xs text-right font-mono text-red-500">0 / {b.max_quantity}</td>
                                     <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.retail_price || 0).toFixed(2)}</td>
                                     <td className="px-3 py-2 text-xs text-right font-mono">Rs {parseFloat(b.cost_price || 0).toFixed(2)}</td>
-                                    <td className="px-3 py-2 text-xs text-text-secondary">{b.expiry_date || '—'}</td>
+                                    <td className="px-3 py-2 text-xs text-text-secondary">{renderExpiry(b.expiry_date)}</td>
                                   </motion.tr>
                                 ))}
                               </tbody>

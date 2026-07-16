@@ -3,7 +3,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { 
   Menu, Users, Settings, Database, 
-  PackageSearch, Truck, LogOut, FileText 
+  PackageSearch, Truck, LogOut, FileText, LayoutDashboard, BookOpen, History
 } from 'lucide-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -14,21 +14,20 @@ export function ManagementLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  const isAdmin = user?.role === 'admin';
-
   const NAV_ITEMS = [
-    { name: 'Stock Ledger', path: 'ledger', icon: <FileText className="w-4 h-4" />, roles: ['manager', 'admin'] },
+    { name: 'Dashboard', path: 'dashboard', icon: <LayoutDashboard className="w-4 h-4" />, roles: ['manager', 'admin'] },
+    { name: 'Stock Ledger', path: 'ledger', icon: <BookOpen className="w-4 h-4" />, roles: ['manager', 'admin'] },
     { name: 'Procurement', path: 'procurement', icon: <Truck className="w-4 h-4" />, roles: ['manager', 'admin'] },
     { name: 'Catalog & Batches', path: 'catalog', icon: <PackageSearch className="w-4 h-4" />, roles: ['manager', 'admin'] },
     { name: 'User Control', path: 'users', icon: <Users className="w-4 h-4" />, roles: ['admin'] },
     { name: 'System Settings', path: 'metadata', icon: <Settings className="w-4 h-4" />, roles: ['admin'] },
-    { name: 'Global Audit', path: 'audit', icon: <Database className="w-4 h-4" />, roles: ['admin'] },
+    { name: 'Global Audit', path: 'audit', icon: <History className="w-4 h-4" />, roles: ['admin'] },
   ];
 
   const visibleNavItems = NAV_ITEMS.filter(item => item.roles.includes(user?.role));
 
   return (
-    <div className="flex h-[100dvh] bg-canvas overflow-hidden flex-col md:flex-row">
+    <div className="flex h-[100dvh] bg-transparent overflow-hidden flex-col md:flex-row">
       {/* Mobile Top Bar */}
       <header className="md:hidden h-12 bg-surface border-b border-border flex items-center justify-between px-4 shrink-0 shadow-sm z-40">
         <span className="font-semibold text-sm text-text-primary tracking-tight">Management Suite</span>
@@ -108,7 +107,7 @@ export function ManagementLayout() {
       </aside>
 
       {/* Main Content Pane */}
-      <main className="flex-1 overflow-y-auto p-3 md:p-4 bg-canvas relative w-full overflow-x-hidden">
+      <main className="flex-1 overflow-y-auto p-3 md:p-4 bg-transparent relative w-full overflow-x-hidden">
         <Outlet />
       </main>
     </div>

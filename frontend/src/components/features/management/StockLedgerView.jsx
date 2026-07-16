@@ -51,7 +51,7 @@ function TransactionGroup({ groupKey, items, isOpen, onToggle }) {
       {/* Summary row */}
       <tr
         className={`border-b border-border/40 transition-colors duration-150 cursor-pointer select-none
-          ${isOpen ? 'bg-blue-50/40' : 'hover:bg-slate-50/60'}`}
+          ${isOpen ? 'bg-blue-50/40' : 'hover:bg-secondary/60'}`}
         onClick={() => isMulti && onToggle()}
       >
         {/* Expand toggle */}
@@ -353,10 +353,10 @@ export function StockLedgerView() {
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-10 gap-2">
+              <Button className="h-10 gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
@@ -373,7 +373,7 @@ export function StockLedgerView() {
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
-            className={`gap-2 h-10 ${showFilters || typeFilter !== 'all' || exactDate || startDate || endDate ? 'bg-slate-100 border-slate-300 text-slate-800 font-semibold' : 'text-slate-600'}`}
+            className={`gap-2 h-10 ${showFilters || typeFilter !== 'all' || exactDate || startDate || endDate ? 'bg-secondary border-border text-primary font-semibold' : 'text-slate-600'}`}
           >
             <Filter className="w-4 h-4" />
             Filters
@@ -450,7 +450,7 @@ export function StockLedgerView() {
 
       {/* Table */}
       <Card className="border-border shadow-sm bg-surface/90 backdrop-blur-md">
-        <CardHeader className="py-3 px-4 border-b border-border/50 bg-slate-50/50">
+        <CardHeader className="py-3 px-4 border-b border-border/50 bg-secondary/50">
           <CardTitle className="text-xs font-bold text-text-secondary uppercase tracking-wider">
             {search ? `${filteredGroups.length} matching groups` : 'All Transactions'}
           </CardTitle>

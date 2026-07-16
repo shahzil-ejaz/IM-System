@@ -40,7 +40,7 @@ def get_categories(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     # Fetch all categories with optional pagination
     categories = db.query(models.Category).offset(skip).limit(limit).all()
@@ -51,7 +51,7 @@ def get_categories(
 def get_category(
     category_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     category = db.query(models.Category).filter(models.Category.id == category_id).first()
 

@@ -17,7 +17,7 @@ def get_all_units(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     units = db.query(models.Unit).offset(skip).limit(limit).all()
     return units
@@ -27,7 +27,7 @@ def get_all_units(
 def get_single_unit(
     id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     unit = db.query(models.Unit).filter(models.Unit.id == id).first()
 

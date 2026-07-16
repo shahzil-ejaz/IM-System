@@ -18,7 +18,7 @@ router = APIRouter(
 def process_checkout(
     payload: schemas.SalesInvoiceCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     # 1. Verify Cashier Exists
     cashier = db.query(models.User).filter(models.User.id == payload.cashier_id).first()
@@ -41,6 +41,8 @@ def process_checkout(
         tax_amount=0,
         total_amount=0,
         payment_method=payload.payment_method,
+        amount_tendered=payload.amount_tendered,
+        change_due=payload.change_due,
         status="completed"
     )
     db.add(new_invoice)
@@ -145,7 +147,7 @@ def get_sales(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     sales = db.query(models.SalesInvoice).offset(skip).limit(limit).all()
     # FIX: Removed manual item loops. SQLAlchemy relationships handle this automatically.
@@ -156,7 +158,7 @@ def get_sales(
 def get_sale(
     invoice_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     sale = db.query(models.SalesInvoice).filter(models.SalesInvoice.id == invoice_id).first()
     if not sale:

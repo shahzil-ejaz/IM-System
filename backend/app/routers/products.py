@@ -57,7 +57,7 @@ def get_products(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     # Standard server-side pagination to prevent memory crashes
     products = db.query(models.Product).offset(skip).limit(limit).all()
@@ -68,7 +68,7 @@ def get_products(
 def get_product(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
 

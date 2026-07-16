@@ -5,7 +5,7 @@ from decimal import Decimal
 
 # ENUMS (using Literal for strict Pydantic validation)
 
-RoleType = Literal["admin", "manager", "cashier"]
+RoleType = Literal["admin", "manager", "cashier", "self_order"]
 TransactionType = Literal["sale", "purchase", "transfer_in", "transfer_out", "adjustment", "return"]
 PaymentMethod = Literal["cash", "card", "split", "unpaid"]
 SalesStatus = Literal["completed", "refunded"]
@@ -150,6 +150,7 @@ class StockTransactionEnriched(BaseModel):
 class SupplierBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=150)
     contact: Optional[str] = None
+    whatsapp_number: Optional[str] = None
 
 class SupplierCreate(SupplierBase):
     pass
@@ -192,6 +193,8 @@ class SalesInvoiceCreate(BaseModel):
     cashier_id: int
     payment_method: PaymentMethod
     discount_amount: Decimal = Field(default=Decimal("0.00"), max_digits=10, decimal_places=2, ge=Decimal("0.00"))
+    amount_tendered: Optional[Decimal] = None
+    change_due: Optional[Decimal] = None
     items: List[SalesItemCreate] = Field(..., min_length=1, description="At least one item required")
 
 class SalesInvoiceResponse(BaseModel):
@@ -203,6 +206,8 @@ class SalesInvoiceResponse(BaseModel):
     tax_amount: Decimal
     total_amount: Decimal
     payment_method: PaymentMethod
+    amount_tendered: Optional[Decimal] = None
+    change_due: Optional[Decimal] = None
     status: SalesStatus
     created_at: datetime
     items: List[SalesItemResponse] = []
@@ -242,3 +247,18 @@ class AuditLogResponse(BaseModel):
     ip_address: Optional[str] = None
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+# ─── SYSTEM CONFIGURATION ────────────────────────────────────────────────────
+
+class SystemSettingsBase(BaseModel):
+    key: str
+    value: str
+
+class SystemSettingsUpdate(BaseModel):
+    value: str
+
+class SystemSettingsResponse(SystemSettingsBase):
+    id: int
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+

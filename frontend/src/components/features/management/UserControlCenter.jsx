@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, UserMinus, UserCheck, Trash2 } from 'lucide-react';
@@ -7,12 +7,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '../../../services/userService';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePopup } from '../../../contexts/PopupContext';
-
+import { RegisterUserDialog, DeleteUserDialog } from './UserDialogs';
+import { POSSettingsDialog } from './POSSettingsDialog';
 export function UserControlCenter() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { showPopup } = usePopup();
   
+  const [userToDelete, setUserToDelete] = useState(null);
+
   // Fetch real users from backend
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -28,14 +31,6 @@ export function UserControlCenter() {
     }
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => userService.deleteUser(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      showPopup({ title: 'Success', message: 'User deleted successfully.', type: 'success' });
-    }
-  });
-  
   if (user?.role !== 'admin') {
     return <div className="p-8 text-red-500">Access Denied. Admins only.</div>;
   }
@@ -47,19 +42,19 @@ export function UserControlCenter() {
           <h1 className="text-lg font-bold text-text-primary tracking-tight">User Control Center</h1>
           <p className="text-text-secondary text-xs mt-0.5">Manage platform access, roles, and employee records.</p>
         </div>
-        <Button className="h-8 text-xs px-3 active:scale-[0.97] transition-transform duration-150 ease-out">
-          <Plus className="w-3.5 h-3.5 mr-1.5" />
-          Register User
-        </Button>
+        <div className="flex items-center gap-3">
+          <POSSettingsDialog />
+          <RegisterUserDialog />
+        </div>
       </div>
 
       <Card className="border-border shadow-sm bg-surface/90 backdrop-blur-md">
-        <CardHeader className="py-3 px-4 border-b border-border/50 bg-slate-50/50">
+        <CardHeader className="py-3 px-4 border-b border-border/50 bg-secondary/50">
           <CardTitle className="text-xs font-semibold text-text-secondary">Registered Employees</CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto no-scrollbar">
           <table className="w-full min-w-[600px] text-sm text-left">
-            <thead className="bg-slate-50/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
+            <thead className="bg-secondary/50 border-b border-border text-[10px] uppercase font-bold tracking-wider text-slate-500">
               <tr>
                 <th className="px-3 py-2 w-20">ID</th>
                 <th className="px-3 py-2">Username</th>
@@ -87,12 +82,12 @@ export function UserControlCenter() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.15, ease: 'easeOut' }}
-                    className="border-b border-border/50 last:border-0 hover:bg-slate-50/50 transition-colors duration-150"
+                    className="border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors duration-150"
                   >
                     <td className="px-3 py-2 font-mono text-[11px] text-text-secondary">#{u.id}</td>
                     <td className="px-3 py-2 font-medium text-xs">{u.username}</td>
                     <td className="px-3 py-2">
-                      <span className="capitalize px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] rounded-sm font-bold">
+                      <span className="capitalize px-2 py-0.5 bg-secondary text-primary text-[10px] rounded-sm font-bold">
                         {u.role}
                       </span>
                     </td>
@@ -122,12 +117,7 @@ export function UserControlCenter() {
                           variant="outline" 
                           size="icon" 
                           className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 active:scale-[0.97] transition-transform duration-150 ease-out"
-                          onClick={() => {
-                            if (window.confirm("Are you sure you want to delete this user?")) {
-                              deleteMutation.mutate(u.id);
-                            }
-                          }}
-                          disabled={deleteMutation.isPending}
+                          onClick={() => setUserToDelete(u)}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
@@ -140,6 +130,12 @@ export function UserControlCenter() {
           </table>
         </CardContent>
       </Card>
+      
+      <DeleteUserDialog 
+        user={userToDelete}
+        open={!!userToDelete}
+        onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}
+      />
     </div>
   );
 }

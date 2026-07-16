@@ -154,6 +154,18 @@ export function ReprintDialog({ open, onOpenChange, onPrint }) {
                         <span>Total:</span>
                         <span>Rs {Number(selectedInvoice.total_amount).toFixed(2)}</span>
                       </div>
+                      {selectedInvoice.payment_method === 'cash' && selectedInvoice.amount_tendered != null && (
+                        <>
+                          <div className="flex justify-between text-slate-500 mt-1">
+                            <span>Cash Tendered:</span>
+                            <span>Rs {Number(selectedInvoice.amount_tendered).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between font-bold text-sm text-emerald-700">
+                            <span>Change Due:</span>
+                            <span>Rs {Number(selectedInvoice.change_due).toFixed(2)}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 

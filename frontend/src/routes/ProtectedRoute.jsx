@@ -20,6 +20,7 @@ export function ProtectedRoute({ children, allowedRoles }) {
     if (user.role === 'cashier') return <Navigate to="/pos" replace />;
     if (user.role === 'manager') return <Navigate to="/manager" replace />;
     if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'self_order') return <Navigate to="/self-order" replace />;
     
     // Ultimate fallback
     return <Navigate to="/login" replace />;

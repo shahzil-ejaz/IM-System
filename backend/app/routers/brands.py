@@ -37,7 +37,7 @@ def get_brands(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     brands = db.query(models.Brand).offset(skip).limit(limit).all()
     return brands
@@ -47,7 +47,7 @@ def get_brands(
 def get_brand(
     brand_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     brand = db.query(models.Brand).filter(models.Brand.id == brand_id).first()
     if not brand:

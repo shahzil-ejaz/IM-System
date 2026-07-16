@@ -46,7 +46,7 @@ def get_all_batches(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     batches = db.query(models.ProductBatch).offset(skip).limit(limit).all()
     return batches
@@ -56,7 +56,7 @@ def get_all_batches(
 def get_single_batch(
     batch_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["admin", "manager", "cashier"])),
+    current_user: models.User = Depends(require_role(["admin", "manager", "cashier", "self_order"])),
 ):
     batch = db.query(models.ProductBatch).filter(models.ProductBatch.id == batch_id).first()
     if not batch:

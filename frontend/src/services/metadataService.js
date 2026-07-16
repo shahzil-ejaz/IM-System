@@ -52,6 +52,10 @@ export const metadataService = {
     const response = await apiClient.post('/api/suppliers/', data);
     return response.data;
   },
+  updateSupplier: async (id, data) => {
+    const response = await apiClient.put(`/api/suppliers/${id}`, data);
+    return response.data;
+  },
   deleteSupplier: async (id) => {
     const response = await apiClient.delete(`/api/suppliers/${id}`);
     return response.data;
