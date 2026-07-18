@@ -33,14 +33,14 @@ export function InteractiveBackground() {
 
   useEffect(() => {
     if (!isLandingPage || !canvasRef.current) return;
-    
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { alpha: true });
     let animationFrameId;
-    
+
     let width = window.innerWidth;
     let height = window.innerHeight;
-    
+
     const resize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
@@ -49,75 +49,91 @@ export function InteractiveBackground() {
     };
     resize();
     window.addEventListener('resize', resize);
-    
+
     let currentMouseX = -1000;
     let currentMouseY = -1000;
     let targetMouseX = -1000;
     let targetMouseY = -1000;
-    
+
     const onCanvasMouseMove = (e) => {
       targetMouseX = e.clientX;
       targetMouseY = e.clientY;
     };
     window.addEventListener('mousemove', onCanvasMouseMove);
 
-    const spacing = 36;
-    const lineLength = 10;
-    
+    const spacing = 42; // slightly larger spacing for icons
+
+    // Path2D objects for various inventory management items
+    const inventoryPaths = [
+      new Path2D("M3 7.5L12 3L21 7.5M3 7.5L12 12M3 7.5V16.5L12 21M21 7.5L12 12M21 7.5V16.5L12 21M12 12V21"), // Cube / Box
+      new Path2D("M7 7H7.01M10.828 2.515H4.5V8.843L14.757 19.1L21.121 12.736L10.828 2.515Z"), // Tag / Label
+      new Path2D("M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"), // Clipboard / Audit
+      new Path2D("M3 5h2v14H3z M7 5h3v14H7z M12 5h2v14h-2z M16 5h1v14h-1z M19 5h2v14h-2z"), // Barcode
+    ];
+
     const draw = () => {
       // Smooth mouse follow (lerp)
       currentMouseX += (targetMouseX - currentMouseX) * 0.15;
       currentMouseY += (targetMouseY - currentMouseY) * 0.15;
-      
+
       ctx.clearRect(0, 0, width, height);
-      
+
       // Draw grid of vectors
       for (let y = spacing / 2; y < height; y += spacing) {
         for (let x = spacing / 2; x < width; x += spacing) {
           const dx = currentMouseX - x;
           const dy = currentMouseY - y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          
+
           // By default, point perfectly horizontal
-          let angle = 0; 
-          let alpha = 0.15; 
-          
+          let angle = 0;
+          let alpha = 0.15;
+          let scaleMultiplier = 0.5;
+
           const influenceRadius = 400;
           if (dist < influenceRadius) {
-             const intensity = 1 - (dist / influenceRadius);
-             // Interpolate from horizontal to pointing at mouse
-             const targetAngle = Math.atan2(dy, dx);
-             angle = targetAngle * intensity; // Smooth transition
-             alpha = 0.15 + (intensity * 0.7); 
+            const intensity = 1 - (dist / influenceRadius);
+            // Interpolate from horizontal to pointing at mouse
+            const targetAngle = Math.atan2(dy, dx);
+            angle = targetAngle * intensity; // Smooth transition
+            alpha = 0.15 + (intensity * 0.7);
+            scaleMultiplier = 1 + (intensity * 0.3); // Slightly enlarge when active
           }
-          
+
           ctx.save();
           ctx.translate(x, y);
           ctx.rotate(angle);
-          
-          ctx.beginPath();
-          ctx.moveTo(-lineLength / 2, 0);
-          ctx.lineTo(lineLength / 2, 0);
-          
+
+          // Scale down the 24x24 icons so they fit well
+          ctx.scale(0.5 * scaleMultiplier, 0.5 * scaleMultiplier);
+          ctx.translate(-12, -12); // Center the 24x24 SVG
+
           if (dist < influenceRadius) {
-             ctx.strokeStyle = `rgba(16, 185, 129, ${alpha})`; // Emerald when active
+            ctx.strokeStyle = `rgba(16, 185, 129, ${alpha})`; // Emerald when active
           } else {
-             ctx.strokeStyle = `rgba(148, 163, 184, 0.15)`; // Slate when resting
+            ctx.strokeStyle = `rgba(148, 163, 184, 0.15)`; // Slate when resting
           }
-          
-          ctx.lineWidth = 1.5;
+
+          ctx.lineWidth = 2.0; // Slightly thicker because we scaled down
           ctx.lineCap = 'round';
-          ctx.stroke();
-          
+          ctx.lineJoin = 'round';
+
+          // Pick an icon based on grid position
+          const col = Math.floor(x / spacing);
+          const row = Math.floor(y / spacing);
+          const pathIndex = (col + row) % inventoryPaths.length;
+
+          ctx.stroke(inventoryPaths[pathIndex]);
+
           ctx.restore();
         }
       }
-      
+
       animationFrameId = requestAnimationFrame(draw);
     };
-    
+
     draw();
-    
+
     return () => {
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onCanvasMouseMove);
@@ -141,8 +157,8 @@ export function InteractiveBackground() {
         <div className="fixed inset-0 z-[-2] bg-slate-50" />
 
         {/* Magnetic Vector Field Texture (z-[-1]) */}
-        <canvas 
-          ref={canvasRef} 
+        <canvas
+          ref={canvasRef}
           className="fixed inset-0 z-[-1] pointer-events-none opacity-60"
         />
 
@@ -170,7 +186,7 @@ export function InteractiveBackground() {
 
   // Static for everywhere else
   return (
-    <div 
+    <div
       className="pointer-events-none fixed inset-0 z-[-1]"
       style={{ background: staticGradient, opacity: 0.95 }}
     />

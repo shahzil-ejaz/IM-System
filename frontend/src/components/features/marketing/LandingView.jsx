@@ -206,7 +206,7 @@ export function LandingView() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="md:col-span-2 md:row-span-1 bg-white/60 backdrop-blur-xl border border-slate-200/60 rounded-3xl p-10 flex flex-col justify-between overflow-hidden relative group"
+              className="md:col-span-2 md:row-span-1 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/80 rounded-3xl p-10 flex flex-col justify-between overflow-hidden relative group hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-500"
             >
               <div className="relative z-10 max-w-md">
                 <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6">
@@ -227,7 +227,7 @@ export function LandingView() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="md:col-span-1 md:row-span-2 bg-slate-950 text-white rounded-3xl p-10 flex flex-col justify-between overflow-hidden relative"
+              className="md:col-span-1 md:row-span-2 bg-slate-950 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-slate-800 rounded-3xl p-10 flex flex-col justify-between overflow-hidden relative hover:shadow-[0_20px_40px_rgb(0,0,0,0.25)] hover:-translate-y-1 transition-all duration-500"
             >
               <div>
                 <div className="w-12 h-12 bg-slate-800 text-slate-300 rounded-2xl flex items-center justify-center mb-6">
@@ -261,7 +261,7 @@ export function LandingView() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="md:col-span-1 bg-white/60 backdrop-blur-xl border border-slate-200/60 rounded-3xl p-8 flex flex-col"
+              className="md:col-span-1 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/80 rounded-3xl p-8 flex flex-col hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-500"
             >
               <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-5">
                 <ShieldCheck className="w-5 h-5" />
@@ -278,7 +278,7 @@ export function LandingView() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="md:col-span-1 bg-emerald-50/50 backdrop-blur-xl border border-emerald-100/50 rounded-3xl p-8 flex flex-col justify-center items-center text-center group cursor-pointer hover:bg-emerald-50 transition-colors"
+              className="md:col-span-1 bg-emerald-50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-emerald-200/60 rounded-3xl p-8 flex flex-col justify-center items-center text-center group cursor-pointer hover:bg-emerald-100/50 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-500"
             >
               <Link to="/login" className="flex flex-col items-center">
                 <div className="w-14 h-14 bg-white shadow-sm rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
