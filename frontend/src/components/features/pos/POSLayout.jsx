@@ -91,8 +91,8 @@ export function POSLayout() {
   const filteredProducts = useMemo(() => {
     if (!itemsSearchQuery.trim()) return allProductsWithInventory;
     const q = itemsSearchQuery.toLowerCase();
-    return allProductsWithInventory.filter(p => 
-      p.name.toLowerCase().includes(q) || 
+    return allProductsWithInventory.filter(p =>
+      p.name.toLowerCase().includes(q) ||
       (p.sku && p.sku.toLowerCase().includes(q))
     );
   }, [allProductsWithInventory, itemsSearchQuery]);
@@ -289,8 +289,8 @@ export function POSLayout() {
           </div>
         </div>
         <div className="flex items-center gap-2 lg:gap-3">
-          <button 
-            onClick={() => setActiveRightPane(prev => prev === 'checkout' ? 'items' : 'checkout')} 
+          <button
+            onClick={() => setActiveRightPane(prev => prev === 'checkout' ? 'items' : 'checkout')}
             className="flex items-center gap-2 px-3 lg:px-4 py-1.5 lg:py-2 hover:bg-slate-100 rounded-lg transition-colors border border-border"
           >
             {activeRightPane === 'checkout' ? (
@@ -435,7 +435,7 @@ export function POSLayout() {
           <div className="bg-surface rounded-xl shadow-xl border border-border flex flex-col flex-1 h-full w-full">
             <AnimatePresence mode="wait">
               {activeRightPane === 'checkout' ? (
-                <motion.div 
+                <motion.div
                   key="checkout-pane"
                   initial={{ opacity: 0, x: -20, filter: 'blur(2px)' }}
                   animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
@@ -491,7 +491,7 @@ export function POSLayout() {
                         <span className="font-bold text-xs">Card</span>
                       </button>
                     </div>
-                    <button
+                    {/* <button
                       className={cn(
                         "w-full flex items-center justify-center p-2 rounded-lg border-2 transition-all duration-150 ease-out group active:scale-[0.98]",
                         paymentMethod === 'split'
@@ -504,7 +504,7 @@ export function POSLayout() {
                         <SplitSquareHorizontal className={cn("w-3.5 h-3.5", paymentMethod === 'split' ? "text-white" : "text-slate-400 group-hover:text-slate-900")} />
                         <span className="font-semibold text-xs">Split Payment</span>
                       </div>
-                    </button>
+                    </button> */}
 
                     {paymentMethod === 'cash' && (
                       <div className="mt-3 animate-in fade-in slide-in-from-top-4 duration-150 ease-out pb-2">
@@ -539,7 +539,7 @@ export function POSLayout() {
                   </button>
                 </motion.div>
               ) : (
-                <motion.div 
+                <motion.div
                   key="items-pane"
                   initial={{ opacity: 0, x: 20, filter: 'blur(2px)' }}
                   animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
@@ -554,9 +554,9 @@ export function POSLayout() {
                     </h2>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input 
-                        type="text" 
-                        placeholder="Search items by name or SKU..." 
+                      <input
+                        type="text"
+                        placeholder="Search items by name or SKU..."
                         value={itemsSearchQuery}
                         onChange={(e) => setItemsSearchQuery(e.target.value)}
                         className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none transition-all"
@@ -609,9 +609,9 @@ export function POSLayout() {
 
 
       {/* Modals & Hidden Print Container */}
-      <ReprintDialog 
-        open={isReprintDialogOpen} 
-        onOpenChange={setIsReprintDialogOpen} 
+      <ReprintDialog
+        open={isReprintDialogOpen}
+        onOpenChange={setIsReprintDialogOpen}
         onPrint={handlePrint}
       />
       <ReceiptPrinter invoice={invoiceToPrint} />

@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
+import { motion, useScroll, useTransform, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, ScanLine, ShieldCheck, Box, Zap } from 'lucide-react';
+import { ArrowRight, BarChart3, ScanLine, ShieldCheck, Box, Zap, X, Rocket } from 'lucide-react';
+import { InstagramLogo, TwitterLogo, LinkedinLogo } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 
 // --- Scramble Text Effect ---
@@ -65,6 +66,7 @@ function DraggableInventoryCard({ children, className, style }) {
 
 // --- Main Landing View ---
 export function LandingView() {
+  const [showComingSoon, setShowComingSoon] = useState(false);
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll();
   const yOffset = useTransform(scrollYProgress, [0, 1], [0, -100]);
@@ -82,14 +84,11 @@ export function LandingView() {
           <ScrambleText text="System" className="font-semibold tracking-tight text-lg" />
         </div>
         <div className="flex items-center gap-6">
-          <Link to="/login" className="text-sm font-medium hover:text-emerald-700 transition-colors">
-            Sign In
-          </Link>
           <Link
             to="/login"
             className="text-sm font-bold bg-slate-950 text-white px-5 py-2.5 rounded-full hover:bg-slate-800 transition-colors active:scale-[0.98]"
           >
-            Get Started
+            Go to login page
           </Link>
         </div>
       </header>
@@ -301,11 +300,69 @@ export function LandingView() {
             </div>
             <span className="font-semibold text-sm tracking-tight text-slate-900">System</span>
           </div>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setShowComingSoon(true)} className="text-slate-400 hover:text-emerald-600 transition-colors" aria-label="Instagram">
+              <InstagramLogo weight="fill" className="w-5 h-5" />
+            </button>
+            <button onClick={() => setShowComingSoon(true)} className="text-slate-400 hover:text-emerald-600 transition-colors" aria-label="Twitter">
+              <TwitterLogo weight="fill" className="w-5 h-5" />
+            </button>
+            <button onClick={() => setShowComingSoon(true)} className="text-slate-400 hover:text-emerald-600 transition-colors" aria-label="LinkedIn">
+              <LinkedinLogo weight="fill" className="w-5 h-5" />
+            </button>
+          </div>
           <p className="text-xs text-slate-500 font-medium">
             Precision.
           </p>
         </div>
       </footer>
+
+      {/* Coming Soon Popup */}
+      <AnimatePresence>
+        {showComingSoon && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowComingSoon(false)}
+              className="fixed inset-0 bg-slate-950/20 backdrop-blur-sm z-[100]"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-3xl shadow-[0_20px_60px_rgb(0,0,0,0.1)] border border-slate-200/80 p-8 z-[101] overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-emerald-100/50 to-transparent pointer-events-none" />
+              
+              <button 
+                onClick={() => setShowComingSoon(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="relative z-10 flex flex-col items-center text-center mt-4">
+                <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-emerald-100/50">
+                  <Rocket className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-bold tracking-tight text-slate-950 mb-3">Coming Soon</h3>
+                <p className="text-slate-600 leading-relaxed mb-8">
+                  We're putting the finishing touches on our social platforms. Check back soon to connect with us!
+                </p>
+                
+                <button
+                  onClick={() => setShowComingSoon(false)}
+                  className="w-full bg-slate-950 text-white font-bold py-3.5 rounded-xl hover:bg-slate-800 transition-colors active:scale-[0.98]"
+                >
+                  Got it
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
