@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { 
-  Menu, Users, Settings, Database, 
+import {
+  Menu, Users, Settings, Database,
   PackageSearch, Truck, LogOut, FileText, LayoutDashboard, BookOpen, History
 } from 'lucide-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
@@ -31,9 +31,9 @@ export function ManagementLayout() {
       {/* Mobile Top Bar */}
       <header className="md:hidden h-12 bg-surface border-b border-border flex items-center justify-between px-4 shrink-0 shadow-sm z-40">
         <span className="font-semibold text-sm text-text-primary tracking-tight">Management Suite</span>
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="w-8 h-8 text-text-secondary active:scale-[0.97]"
           onClick={() => setIsMobileMenuOpen(true)}
         >
@@ -43,14 +43,14 @@ export function ManagementLayout() {
 
       {/* Mobile Backdrop */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden transition-opacity"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar Layout */}
-      <aside 
+      <aside
         className={cn(
           "bg-surface border-r border-border transition-all duration-300 flex flex-col shrink-0 shadow-xl md:shadow-sm",
           "fixed md:relative inset-y-0 left-0 z-50 h-full",
@@ -60,9 +60,9 @@ export function ManagementLayout() {
       >
         <div className="h-12 flex items-center justify-between px-3 border-b border-border shrink-0">
           {(!isCollapsed || isMobileMenuOpen) && <span className="font-semibold text-sm text-text-primary tracking-tight px-1">Management Suite</span>}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="shrink-0 w-8 h-8 text-text-secondary hover:text-text-primary active:scale-[0.97] transition-transform duration-150 ease-out hidden md:flex"
             onClick={() => setIsCollapsed(!isCollapsed)}
           >
@@ -75,10 +75,10 @@ export function ManagementLayout() {
             const isActive = location.pathname.includes(item.path);
             return (
               <Link key={item.path} to={item.path} onClick={() => setIsMobileMenuOpen(false)}>
-                <Button 
-                  variant={isActive ? 'secondary' : 'ghost'} 
+                <Button
+                  variant={isActive ? 'secondary' : 'ghost'}
                   className={cn(
-                    "w-full justify-start h-9 text-xs active:scale-[0.98] transition-transform duration-150 ease-out", 
+                    "w-full justify-start h-9 text-xs active:scale-[0.98] transition-transform duration-150 ease-out",
                     (!isMobileMenuOpen && isCollapsed) ? "px-0 justify-center" : "px-3"
                   )}
                   title={item.name}

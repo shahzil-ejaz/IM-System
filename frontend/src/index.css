@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @source "./components/features/marketing";
+
 :root {
   /* Green - Primary Color Scale */
   --color-primary-50: #ecfdf5;
@@ -26,7 +27,7 @@
   --color-neutral-800: #1e293b;
   --color-neutral-900: #0f172a;
   --color-neutral-950: #020617;
-  
+
   color-scheme: light;
 }
 
@@ -77,31 +78,31 @@
   --color-text-secondary: var(--color-neutral-500);
   --color-border: var(--color-neutral-200);
   --color-input: var(--color-neutral-200);
-  
+
   --color-background: var(--color-canvas);
   --color-foreground: var(--color-text-primary);
-  
+
   --color-card: var(--color-surface);
   --color-card-foreground: var(--color-text-primary);
-  
+
   --color-popover: var(--color-surface);
   --color-popover-foreground: var(--color-text-primary);
 
   --color-primary: var(--color-primary-600);
   --color-primary-foreground: #ffffff;
-  
+
   --color-secondary: var(--color-neutral-100);
   --color-secondary-foreground: var(--color-neutral-900);
-  
+
   --color-muted: var(--color-neutral-100);
   --color-muted-foreground: var(--color-neutral-500);
-  
+
   --color-accent: var(--color-primary-50);
   --color-accent-foreground: var(--color-primary-900);
-  
-  --color-destructive: #ef4444; 
+
+  --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
-  
+
   --color-ring: var(--color-primary-500);
   --radius: 0.5rem;
 
@@ -122,6 +123,7 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -130,7 +132,8 @@
 
 /* Disable sticky hovers on touch devices */
 @media (hover: none) {
-  .hover\:scale-110:hover, 
+
+  .hover\:scale-110:hover,
   .hover\:scale-105:hover,
   .group:hover .group-hover\:scale-105,
   .group:hover .group-hover\:translate-x-1 {
@@ -144,12 +147,13 @@
     margin: 0 !important;
     padding: 0 !important;
   }
-  
+
   .print-only {
     display: block !important;
   }
-  
-  .no-print, [data-radix-portal] {
+
+  .no-print,
+  [data-radix-portal] {
     display: none !important;
   }
 
@@ -159,31 +163,83 @@
 }
 
 @keyframes float-up {
-  0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(-20vh) scale(1.2); opacity: 0; }
+  0% {
+    transform: translateY(100vh) scale(0.5);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  90% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-20vh) scale(1.2);
+    opacity: 0;
+  }
 }
 
 @keyframes hueShift {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(80deg); }
+  0% {
+    filter: hue-rotate(0deg);
+  }
+
+  100% {
+    filter: hue-rotate(80deg);
+  }
 }
 
 @keyframes aurora-1 {
-  0%, 100% { border-radius: 40% 60% 70% 30% / 40% 40% 60% 50%; transform: rotate(0deg) scale(1); }
-  34% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; transform: rotate(120deg) scale(1.1); }
-  67% { border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%; transform: rotate(240deg) scale(0.9); }
+
+  0%,
+  100% {
+    border-radius: 40% 60% 70% 30% / 40% 40% 60% 50%;
+    transform: rotate(0deg) scale(1);
+  }
+
+  34% {
+    border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%;
+    transform: rotate(120deg) scale(1.1);
+  }
+
+  67% {
+    border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%;
+    transform: rotate(240deg) scale(0.9);
+  }
 }
 
 @keyframes aurora-2 {
-  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotate(0deg) scale(1); }
-  34% { border-radius: 40% 60% 70% 30% / 50% 60% 30% 60%; transform: rotate(-120deg) scale(1.15); }
-  67% { border-radius: 50% 50% 40% 60% / 40% 50% 50% 60%; transform: rotate(-240deg) scale(0.85); }
+
+  0%,
+  100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: rotate(0deg) scale(1);
+  }
+
+  34% {
+    border-radius: 40% 60% 70% 30% / 50% 60% 30% 60%;
+    transform: rotate(-120deg) scale(1.15);
+  }
+
+  67% {
+    border-radius: 50% 50% 40% 60% / 40% 50% 50% 60%;
+    transform: rotate(-240deg) scale(0.85);
+  }
 }
 
 @keyframes aurora-3 {
-  0%, 100% { border-radius: 50% 50% 60% 40% / 60% 40% 50% 60%; transform: translate(0, 0) scale(1) rotate(0deg); }
-  50% { border-radius: 40% 60% 50% 50% / 40% 60% 40% 50%; transform: translate(-5%, 5%) scale(1.2) rotate(45deg); }
-}
 
+  0%,
+  100% {
+    border-radius: 50% 50% 60% 40% / 60% 40% 50% 60%;
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+
+  50% {
+    border-radius: 40% 60% 50% 50% / 40% 60% 40% 50%;
+    transform: translate(-5%, 5%) scale(1.2) rotate(45deg);
+  }
+}
